@@ -7,8 +7,8 @@ beta = 0.7
 gamma = 0.003
 gamma_variation_amplitude_ratio = 0.5
 random_beta_variation = 0.4
-radius = 60
-steps = 350
+radius = 200
+steps = 400
 seed = 1
 
 random.seed(seed)
