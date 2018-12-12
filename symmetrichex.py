@@ -63,23 +63,26 @@ class SymmetricHex(object):
         # 3 x 0
         #   4 5
         x,y = xy
-        return self.scale * complex((x + y / 2) * math.sqrt(3), y * 1.5) / 2
+        return 0.5 * self.scale * complex((x + y / 2) * math.sqrt(3), y * 1.5)
         
-    def getPaths(self, isFilled=bool):
-        segments = set()
+    def getTriangleIntegerCoordinates(self, isFilled=bool):
         for r in range(self.radius+1):
             for i in range(SymmetricHex.perimeter(r)):
                 if isFilled(self[(r,i)]):
-                    c = SymmetricHex.getIntegerCoordinates((r,i))
-                    for i in range(6):
-                        o1 = SymmetricHex.CORNERS[i]
-                        o2 = SymmetricHex.CORNERS[(i+1)%6]
-                        p1 = (c[0]+o1[0],c[1]+o1[1])
-                        p2 = (c[0]+o2[0],c[1]+o2[1])
-                        if (p2,p1) in segments:
-                            segments.remove((p2,p1))
-                        else:
-                            segments.add((p1,p2))   
+                    yield SymmetricHex.getIntegerCoordinates((r,i))
+        
+    def getPaths(self, isFilled=bool):
+        segments = set()
+        for c in self.getTriangleIntegerCoordinates(isFilled=isFilled):
+            for i in range(6):
+                o1 = SymmetricHex.CORNERS[i]
+                o2 = SymmetricHex.CORNERS[(i+1)%6]
+                p1 = (c[0]+o1[0],c[1]+o1[1])
+                p2 = (c[0]+o2[0],c[1]+o2[1])
+                if (p2,p1) in segments:
+                    segments.remove((p2,p1))
+                else:
+                    segments.add((p1,p2))   
         while segments:
             s = next(iter(segments))
             segments.remove(s)
@@ -105,7 +108,7 @@ class SymmetricHex(object):
         maxY = -minY
         
         out = "<path d='"
-        for path in self.getPaths(isFilled):
+        for path in self.getPaths(isFilled=isFilled):
             for z in path:
                 minX = min(minX,z.real)
                 minY = min(minY,z.imag)
@@ -121,6 +124,31 @@ class SymmetricHex(object):
                     (maxCoord*2,units,maxCoord*2,units,-maxCoord,-maxCoord,2*maxCoord,2*maxCoord)
                     + out)
         return out
+        
+    def getMesh(self, isFilled=bool, height=1):
+        mesh = []
+        
+        def level(xy,z):
+            return (xy.real,xy.imag,z)
+
+        for path in self.getPaths(isFilled=isFilled):
+            for i in range(len(path)):
+                a = path[i]
+                b = path[(i+1)%len(path)]
+                mesh.append( ( level(a,0), level(b,0), level(b,height) ) )
+                mesh.append( ( level(a,0), level(b,height), level(a,height) ) )
+                
+        for c in self.getTriangleIntegerCoordinates(isFilled=isFilled):
+            centerXY = self.fromIntegerCoordinates(c)
+            for i in range(6):
+                o1 = SymmetricHex.CORNERS[i]
+                o2 = SymmetricHex.CORNERS[(i+1)%6]
+                xy1 = self.fromIntegerCoordinates((c[0]+o1[0],c[1]+o1[1]))
+                xy2 = self.fromIntegerCoordinates((c[0]+o2[0],c[1]+o2[1]))
+                mesh.append( ( level(centerXY,height), level(xy1,height), level(xy2,height) ) )
+                mesh.append( ( level(centerXY,0), level(xy2,0), level(xy1,0) ) )             
+
+        return mesh
         
     @staticmethod
     def equalPoints(a,b):
@@ -149,6 +177,9 @@ class SymmetricHex(object):
 
 if __name__ == '__main__':
     import random
+    import exportmesh
 
     h = SymmetricHex(20,initializer=lambda ri: ri[0]<=5 and random.randint(0,2)!=0,outside=False,scale=10)
     print(h.getSVG())
+    exportmesh.saveSTL("test.stl", h.getMesh())
+    
