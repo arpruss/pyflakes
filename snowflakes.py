@@ -4,14 +4,14 @@ import exportmesh
 from symmetrichex import SymmetricHex
 import random
 
-radius = 500
-steps = 300 # 10000
-rho = 0.38
-kappa = 0.001
-beta = 1.06
+radius = 200
+steps = 30000
+rho = 0.46
+kappa = 0.0025
+beta = 1.9
 alpha = 0.35
 theta = 0.112
-mu = 0.14
+mu = 0.06
 gamma = 0.00006
 sigma = 1e-5
 
@@ -28,6 +28,9 @@ class HexState(object):
         
     def clone(self):
         return HexState(self.a,self.b,self.c,self.d,self.bdy)
+        
+    def __repr__(self):
+        return "(%s,%s,%g,%g,%g)" % (self.a,self.bdy,self.b,self.c,self.d)
     
     __nonzero__ = __bool__
     
@@ -48,21 +51,33 @@ def evolve():
     for ri in board.getCoordinates():
         hex = board[ri]
         if not hex.a:
-            scratch[ri].d = sum(board[y].d for y in board.getNeighborsInclusive(ri)) / 7.
+            if hex.bdy:
+                s = hex.d
+                for y in board.getNeighbors(ri):
+                    nhex = board[y]
+                    if nhex.a:
+                        s += hex.d
+                    else:
+                        s += nhex.d
+                scratch[ri].d = s / 7.
+            else:
+                scratch[ri].d = sum(board[y].d for y in board.getNeighborsInclusive(ri)) / 7.
+            
     for ri in board.getCoordinates():
         hex = board[ri]
-        if not hex.a:
-            board[ri].d = scratch[ri].d
         
-    # ii. Freezing
-    for ri in board.getCoordinates():
-        hex = board[ri]
-        if hex.bdy:
-            hex.b += (1-kappa)*hex.d
-            hex.c += kappa*hex.d
-            hex.d = 0
-
+        if not hex.a:
+            hex.d = scratch[ri].d
+    
+            # ii. Freezing
+            if hex.bdy:
+                hex.b += (1-kappa)*hex.d
+                hex.c += kappa*hex.d
+                hex.d = 0.
+                
     # iii. Attachment
+
+    frozeSomething = False
     for ri in board.getCoordinates():
         hex = board[ri]
         if hex.bdy:
@@ -71,26 +86,27 @@ def evolve():
                  ( n == 3 and ( hex.b >= 1 or (hex.b >= alpha and sum(board[y].d for y in board.getNeighborsInclusive(ri)) < theta) ) ) or
                  n >= 4 ):
                 hex.a = True
-                hex.c = hex.b + hex.c
-                hex.b = 0
+                hex.c += hex.b
+                hex.b = 0.
+                hex.bdy = False
+                frozeSomething = True
                 
     for ri in board.getCoordinates():
         hex = board[ri]
-        if hex.a:
-            hex.bdy = False
-        else:
-            hex.bdy = any(board[y].a for y in board.getNeighbors(ri))
+        if not hex.a:
+            if frozeSomething:
+                hex.bdy = any(board[y].a for y in board.getNeighbors(ri))
             
             # iv. Melting
             if hex.bdy:
-                hex.b = (1-mu)*hex.b
-                hex.c = (1-gamma)*hex.c 
-                hex.d = hex.d + mu * hex.b + gamma * hex.c
+                hex.d += mu * hex.b + gamma * hex.c
+                hex.b *= 1-mu
+                hex.c *= 1-gamma
 
-        # v. Noise
-        hex.d += random.choice((-1,1))*sigma*hex.d
+            # v. Noise
+            hex.d += random.choice((-1,1))*sigma*hex.d
 
-board = SymmetricHex(radius, initializer=initializer, outside=HexState(a=0,b=0,c=0,d=rho,bdy=False), 
+board = SymmetricHex(radius, initializer=initializer,  
             scale=5, isFilled=lambda hex:hex.a)
 scratch = board.clone()
     
@@ -98,5 +114,6 @@ for i in range(steps):
     evolve()
     if i % 100 == 0:
         print(i)
+        print(board.data[30])
         
 exportmesh.saveSTL("flake.stl", board.getMesh(height=5))

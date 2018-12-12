@@ -1,11 +1,10 @@
 import math
 
 class SymmetricHex(object):
-    def __init__(self,radius, initializer=0, outside=0, scale=1., isFilled=bool):
+    def __init__(self,radius, initializer=0, scale=1., isFilled=bool):
         self.radius = radius
         init = initializer if callable(initializer) else lambda ri: initializer
         self.data = [ [ init((r,i)) for i in range(SymmetricHex.rowSize(r)) ] for r in range(radius+1) ]
-        self.outside = outside if callable(outside) else lambda ri: outside
         self.scale = scale
         self.isFilled = isFilled
         
@@ -13,25 +12,28 @@ class SymmetricHex(object):
         self.data = tuple( a[:] for a in h.data )
         
     def clone(self):
-        h = SymmetricHex(self.radius, outside=self.outside, scale=self.scale, isFilled=self.isFilled)
+        h = SymmetricHex(self.radius, scale=self.scale, isFilled=self.isFilled)
         h.data = tuple( [b.clone() for b in a] for a in self.data )
         return h
         
     def getCoordinates(self):
-        for r in range(self.radius):
+        for r in range(self.radius+1):
             for i in range(SymmetricHex.rowSize(r)):
                 yield (r,i)
                 
     def countFilledNeighbors(self, ri):
         return sum(1 for n in self.getNeighbors(ri) if self.isFilled(self[n]))
         
-    @staticmethod
-    def reduceCoordinates(ri):
+    def reduceCoordinates(self,ri):
         r,i = ri
         if r < 0:
             return (1,0)
         elif r <= 1:
             return (r,0)
+        elif r > self.radius:
+            r = self.radius
+            if 2*i >= r:
+                i = SymmetricHex.rowSize(r) - 1
         
         # perimeter is 6*r
         i %= r
@@ -44,14 +46,14 @@ class SymmetricHex(object):
         try:
             return self.data[ri]
         except:
-            r,i = SymmetricHex.reduceCoordinates(ri)
-            if r <= self.radius:
-                return self.data[r][i]
-            else:
-                return self.outside((r,i))
+            r,i = self.reduceCoordinates(ri)
+            return self.data[r][i]
             
     def __getitem__(self, ri):
-        return self.data[ri[0]][ri[1]]
+        if ri[0] <= self.radius:
+            return self.data[ri[0]][ri[1]]
+        else:
+            return self[self.reduceCoordinates(ri)]
             
     def __setitem__(self, ri, v):
         self.data[ri[0]][ri[1]] = v
@@ -65,11 +67,12 @@ class SymmetricHex(object):
             return ((0,0),(1,0),(1,0),(2,0),(2,1),(2,1))
         else:
             if i == 0:
-                return ((r,1),(r,1),(r+1,0),(r+1,1),(r+1,1),(r-1,0))
+                nn = ((r,1),(r,1),(r+1,0),(r+1,1),(r+1,1),(r-1,0))
             elif i >= SymmetricHex.rowSize(r)-2:
-                return map(SymmetricHex.reduceCoordinates,((r,i-1),(r,i+1),(r+1,i),(r+1,i+1),(r-1,i),(r-1,i-1)))
+                nn = ((r,i-1),(r,i+1),(r+1,i),(r+1,i+1),(r-1,i),(r-1,i-1))
             else:
-                return ((r,i-1),(r,i+1),(r+1,i),(r+1,i+1),(r-1,i),(r-1,i-1))
+                nn = ((r,i-1),(r,i+1),(r+1,i),(r+1,i+1),(r-1,i),(r-1,i-1))
+            return map(self.reduceCoordinates,nn)
         
     def getNeighborsInclusive(self, ri):
         yield ri
@@ -201,7 +204,7 @@ if __name__ == '__main__':
     import random
     import exportmesh
 
-    h = SymmetricHex(15,initializer=lambda ri: True or ri[0]<=5 and random.randint(0,2)!=0,outside=False,scale=10)
+    h = SymmetricHex(15,initializer=lambda ri: True or ri[0]<=5 and random.randint(0,2)!=0,scale=10)
     print(h.getSVG())
     exportmesh.saveSTL("test.stl", h.getMesh())
     
