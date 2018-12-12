@@ -101,16 +101,16 @@ class SymmetricHex(object):
         return math.abs(a-b) < 0.01
         
     @staticmethod
-    def getCoordinates(ri):
+    def getIntegerCoordinates(ri):
         r,i = ri
         if r==0:
-            return (0.,0.)
-        theta = math.pi/(3*i*r)
-        c = math.cos(theta)
-        s = math.sin(theta)
-        x0 = self.scale*cos30*i
-        y0 = self.scale*(r-sin30*i)
-        return complex(c*x0-s*y0,s*x0+c*y0)
+            return (0,0)
+        c = (r,0)
+        angle = i//r
+        for a in range(angle):
+            c = (c[0]+r*INTEGER_OFFSETS[a][0],c[1]+r*INTEGER_OFFSETS[a][1])
+        offset = i-r*angle
+        return (c[0]+offset*INTEGER_OFFSETS[a][0],c[1]+offset*INTEGER_OFFSETS[a][1])
             
     @staticmethod 
     def rowSize(r):
