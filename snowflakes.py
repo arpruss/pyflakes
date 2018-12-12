@@ -5,7 +5,7 @@ from symmetrichex import SymmetricHex
 import random
 
 radius = 500
-steps = 10000
+steps = 300 # 10000
 rho = 0.38
 kappa = 0.001
 beta = 1.06
@@ -80,20 +80,16 @@ def evolve():
             hex.bdy = False
         else:
             hex.bdy = any(board[y].a for y in board.getNeighbors(ri))
+            
+            # iv. Melting
+            if hex.bdy:
+                hex.b = (1-mu)*hex.b
+                hex.c = (1-gamma)*hex.c 
+                hex.d = hex.d + mu * hex.b + gamma * hex.c
 
-    # iv. Melting
-    for ri in board.getCoordinates():
-        hex = board[ri]
-        if hex.bdy:
-            hex.b = (1-mu)*hex.b
-            hex.c = (1-gamma)*hex.c 
-            hex.d = hex.d + mu * hex.b + gamma * hex.c
-        
-    # v. Noise
-    for ri in board.getCoordinates():
-        hex = board[ri]
+        # v. Noise
         hex.d += random.choice((-1,1))*sigma*hex.d
-        
+
 board = SymmetricHex(radius, initializer=initializer, outside=HexState(a=0,b=0,c=0,d=rho,bdy=False), 
             scale=5, isFilled=lambda hex:hex.a)
 scratch = board.clone()

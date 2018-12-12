@@ -10,11 +10,11 @@ class SymmetricHex(object):
         self.isFilled = isFilled
         
     def importData(self, h):
-        self.data = [ a[:] for a in h.data ]
+        self.data = tuple( a[:] for a in h.data )
         
     def clone(self):
         h = SymmetricHex(self.radius, outside=self.outside, scale=self.scale, isFilled=self.isFilled)
-        h.data = [ [b.clone() for b in a] for a in self.data ]
+        h.data = tuple( [b.clone() for b in a] for a in self.data )
         return h
         
     def getCoordinates(self):
