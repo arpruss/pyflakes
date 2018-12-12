@@ -8,14 +8,6 @@ class SymmetricHex(object):
         self.scale = scale
         self.isFilled = isFilled
         
-    def importData(self, h):
-        self.data = tuple( a[:] for a in h.data )
-        
-    def clone(self):
-        h = SymmetricHex(self.radius, scale=self.scale, isFilled=self.isFilled)
-        h.data = tuple( [b.clone() for b in a] for a in self.data )
-        return h
-        
     def getCoordinates(self):
         for r in range(self.radius+1):
             for i in range(SymmetricHex.rowSize(r)):

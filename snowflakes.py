@@ -59,15 +59,15 @@ def evolve():
                         s += hex.d
                     else:
                         s += nhex.d
-                scratch[ri].d = s / 7.
+                scratch[ri] = s / 7.
             else:
-                scratch[ri].d = sum(board[y].d for y in board.getNeighborsInclusive(ri)) / 7.
+                scratch[ri] = sum(board[y].d for y in board.getNeighborsInclusive(ri)) / 7.
             
     for ri in board.getCoordinates():
         hex = board[ri]
         
         if not hex.a:
-            hex.d = scratch[ri].d
+            hex.d = scratch[ri]
     
             # ii. Freezing
             if hex.bdy:
@@ -108,7 +108,7 @@ def evolve():
 
 board = SymmetricHex(radius, initializer=initializer,  
             scale=5, isFilled=lambda hex:hex.a)
-scratch = board.clone()
+scratch = SymmetricHex(radius, initializer=0)
     
 for i in range(steps):
     evolve()
