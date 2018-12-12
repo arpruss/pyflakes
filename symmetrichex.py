@@ -1,12 +1,29 @@
 import math
 
 class SymmetricHex(object):
-    def __init__(self,radius, initializer=0, outside=0, scale=1.):
+    def __init__(self,radius, initializer=0, outside=0, scale=1., isFilled=bool):
         self.radius = radius
         init = initializer if callable(initializer) else lambda ri: initializer
         self.data = [ [ init((r,i)) for i in range(SymmetricHex.rowSize(r)) ] for r in range(radius+1) ]
         self.outside = outside if callable(outside) else lambda ri: outside
         self.scale = scale
+        self.isFilled = isFilled
+        
+    def importData(self, h):
+        self.data = [ a[:] for a in h.data ]
+        
+    def clone(self):
+        h = SymmetricHex(self.radius, outside=self.outside, scale=self.scale, isFilled=self.isFilled)
+        h.data = [ [b.clone() for b in a] for a in self.data ]
+        return h
+        
+    def getCoordinates(self):
+        for r in range(self.radius):
+            for i in range(SymmetricHex.rowSize(r)):
+                yield (r,i)
+                
+    def countFilledNeighbors(self, ri):
+        return sum(1 for n in self.getNeighbors(ri) if self.isFilled(self[n]))
         
     @staticmethod
     def reduceCoordinates(ri):
@@ -23,7 +40,7 @@ class SymmetricHex(object):
         else:
             return (r,i)
         
-    def __getitem__(self, ri):
+    def getData(self, ri):
         try:
             return self.data[ri]
         except:
@@ -33,26 +50,31 @@ class SymmetricHex(object):
             else:
                 return self.outside((r,i))
             
-    def __setitem__(self, ri, v):
-        try:
-            self.data[ri] = v
-        except:
-            r,i = SymmetricHex.reduceCoordinates(ri)
-            self.data[r][i] = v
+    def __getitem__(self, ri):
+        return self.data[ri[0]][ri[1]]
             
-    def getNeighborData(self, ri):
-        r,i = ri
-        if i == 0:
-            return (self[(r,1)],self[(r,1)],self[(r+1,0)],self[(r+1,1)],self[(r+1,1)],self[(r-1,0)])
-        else:
-            return (self[(r,i-1)],self[(r,i+1)],self[(r+1,i)],self[(r+1,i+1)],self[(r-1,i)],self[(r-1,i-1)])
+    def __setitem__(self, ri, v):
+        self.data[ri[0]][ri[1]] = v
             
     def getNeighbors(self, ri):
         r,i = ri
-        if i == 0:
-            return ((r,1),(r,1),(r+1,0),(r+1,1),(r+1,1),(r-1,0))
+        
+        if r == 0:
+            return ((1,0),(1,0),(1,0),(1,0),(1,0),(1,0))
+        elif r == 1:
+            return ((0,0),(1,0),(1,0),(2,0),(2,1),(2,1))
         else:
-            return ((r,i-1),(r,i+1),(r+1,i),(r+1,i+1),(r-1,i),(r-1,i-1))
+            if i == 0:
+                return ((r,1),(r,1),(r+1,0),(r+1,1),(r+1,1),(r-1,0))
+            elif i >= SymmetricHex.rowSize(r)-2:
+                return map(SymmetricHex.reduceCoordinates,((r,i-1),(r,i+1),(r+1,i),(r+1,i+1),(r-1,i),(r-1,i-1)))
+            else:
+                return ((r,i-1),(r,i+1),(r+1,i),(r+1,i+1),(r-1,i),(r-1,i-1))
+        
+    def getNeighborsInclusive(self, ri):
+        yield ri
+        for y in self.getNeighbors(ri):
+            yield y
         
     FIRST_NEIGHBOR = (-1,2)
     NEIGHBOR_OFFSETS = ((-1,-1),(1,-2),(2,-1),(1,1),(-1,2),(-2,1))
@@ -63,17 +85,17 @@ class SymmetricHex(object):
         # 3 x 0
         #   4 5
         x,y = xy
-        return 0.5 * self.scale * complex((x + y / 2) * math.sqrt(3), y * 1.5)
+        return 0.5 * self.scale * complex((x + y / 2.) * math.sqrt(3), y * 1.5)
         
-    def getTriangleIntegerCoordinates(self, isFilled=bool):
+    def getTriangleIntegerCoordinates(self):
         for r in range(self.radius+1):
             for i in range(SymmetricHex.perimeter(r)):
-                if isFilled(self[(r,i)]):
+                if self.isFilled(self.getData((r,i))):
                     yield SymmetricHex.getIntegerCoordinates((r,i))
         
-    def getPaths(self, isFilled=bool):
+    def getPaths(self):
         segments = set()
-        for c in self.getTriangleIntegerCoordinates(isFilled=isFilled):
+        for c in self.getTriangleIntegerCoordinates():
             for i in range(6):
                 o1 = SymmetricHex.CORNERS[i]
                 o2 = SymmetricHex.CORNERS[(i+1)%6]
@@ -101,14 +123,14 @@ class SymmetricHex(object):
                 geoPath.append(self.fromIntegerCoordinates(p))
             yield geoPath               
             
-    def getSVG(self, isFilled=bool, units="", stroke="black", fill="blue", strokeWidth=0.3):
+    def getSVG(self, units="", stroke="black", fill="blue", strokeWidth=0.3):
         minX = float("inf")
         minY = float("inf")
         maxX = -minX
         maxY = -minY
         
         out = "<path d='"
-        for path in self.getPaths(isFilled=isFilled):
+        for path in self.getPaths():
             for z in path:
                 minX = min(minX,z.real)
                 minY = min(minY,z.imag)
@@ -125,20 +147,20 @@ class SymmetricHex(object):
                     + out)
         return out
         
-    def getMesh(self, isFilled=bool, height=1):
+    def getMesh(self, height=1):
         mesh = []
         
         def level(xy,z):
             return (xy.real,xy.imag,z)
 
-        for path in self.getPaths(isFilled=isFilled):
+        for path in self.getPaths():
             for i in range(len(path)):
                 a = path[i]
                 b = path[(i+1)%len(path)]
                 mesh.append( ( level(a,0), level(b,0), level(b,height) ) )
                 mesh.append( ( level(a,0), level(b,height), level(a,height) ) )
                 
-        for c in self.getTriangleIntegerCoordinates(isFilled=isFilled):
+        for c in self.getTriangleIntegerCoordinates():
             centerXY = self.fromIntegerCoordinates(c)
             for i in range(6):
                 o1 = SymmetricHex.CORNERS[i]
@@ -169,7 +191,7 @@ class SymmetricHex(object):
             
     @staticmethod 
     def rowSize(r):
-        return math.ceil((r+1)/2.)
+        return int(math.ceil((r+1)/2.))
         
     @staticmethod
     def perimeter(r):
@@ -179,7 +201,7 @@ if __name__ == '__main__':
     import random
     import exportmesh
 
-    h = SymmetricHex(20,initializer=lambda ri: ri[0]<=5 and random.randint(0,2)!=0,outside=False,scale=10)
+    h = SymmetricHex(15,initializer=lambda ri: True or ri[0]<=5 and random.randint(0,2)!=0,outside=False,scale=10)
     print(h.getSVG())
     exportmesh.saveSTL("test.stl", h.getMesh())
     
