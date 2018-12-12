@@ -56,7 +56,50 @@ class SymmetricHex(object):
             return ((r,1),(r,1),(r+1,0),(r+1,1),(r+1,1),(r-1,0))
         else:
             return ((r,i-1),(r,i+1),(r+1,i),(r+1,i+1),(r-1,i),(r-1,i-1))
-            
+        
+    INTEGER_OFFSETS = ((1,0),(0,1),(-1,1),(-1,0),(0,-1),(1,-1))
+        
+    def fromIntegerCoordinates(self,xy):
+        # 2 1 
+        # 3 x 0
+        #   4 5
+        x,y = xy
+        return self.scale * complex((x + y / 2) * 1.5, y * math.sqrt(3)/2)
+        
+    def getPaths(self, ri, isFilled):
+        segments = set()        
+        for r in range(radius+1):
+            for i in range(SymmetricHex.perimeter(r)):
+                if isFilled(data[r][i]):
+                    c = SymmetricHex.getIntegerCoordinates(r,i) # unimplemented
+                    for i in range(6):
+                        o1 = INTEGER_OFFSETS[i]
+                        o2 = INTEGER_OFFSETS[(i+1)%6]
+                        p1 = (c[0]+o1[0],c[1]+o1[1])
+                        p2 = (c[0]+o2[0],c[1]+o2[1])
+                        if (p2,p1) in segments:
+                            segments.remove((p2,p1))
+                        else:
+                            segments.add((p1,p2))
+        paths = []
+        while segments:
+            s = next(iter(segments))
+            segments.remove(s)
+            path = [s[0],s[1]]
+            found = True
+            while found:
+                found = False
+                for s in segments:
+                    if s[0] == path[-1]:
+                        path.append(s)
+                        segments.remove(s)
+                        found = true
+                        break
+        
+    @staticmethod
+    def equalPoints(a,b):
+        return math.abs(a-b) < 0.01
+        
     @staticmethod
     def getCoordinates(ri):
         r,i = ri
@@ -67,7 +110,7 @@ class SymmetricHex(object):
         s = math.sin(theta)
         x0 = self.scale*cos30*i
         y0 = self.scale*(r-sin30*i)
-        return (c*x0-s*y0,s*x0+c*y0)
+        return complex(c*x0-s*y0,s*x0+c*y0)
             
     @staticmethod 
     def rowSize(r):
@@ -76,3 +119,5 @@ class SymmetricHex(object):
     @staticmethod
     def perimeter(r):
         return 1 if r==0 else 6*r
+        
+     
