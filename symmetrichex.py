@@ -1,8 +1,5 @@
 import math
 
-cos30 = math.cos(math.pi/6)
-sin30 = math.sin(math.pi/6)
-
 class SymmetricHex(object):
     def __init__(self,radius, initializer=0, outside=0, scale=1.):
         self.radius = radius
@@ -30,17 +27,17 @@ class SymmetricHex(object):
         try:
             return self.data[ri]
         except:
-            r,i = reduceCoordnates(ri)
-            if r <= radius:
+            r,i = SymmetricHex.reduceCoordinates(ri)
+            if r <= self.radius:
                 return self.data[r][i]
             else:
-                return outside((r,i))
+                return self.outside((r,i))
             
     def __setitem__(self, ri, v):
         try:
             self.data[ri] = v
         except:
-            r,i = reduceCoordinates(ri)
+            r,i = SymmetricHex.reduceCoordinates(ri)
             self.data[r][i] = v
             
     def getNeighborData(self, ri):
@@ -57,31 +54,32 @@ class SymmetricHex(object):
         else:
             return ((r,i-1),(r,i+1),(r+1,i),(r+1,i+1),(r-1,i),(r-1,i-1))
         
-    INTEGER_OFFSETS = ((1,0),(0,1),(-1,1),(-1,0),(0,-1),(1,-1))
+    FIRST_NEIGHBOR = (-1,2)
+    NEIGHBOR_OFFSETS = ((-1,-1),(1,-2),(2,-1),(1,1),(-1,2),(-2,1))
+    CORNERS = ((1,0),(0,1),(-1,1),(-1,0),(0,-1),(1,-1))
         
     def fromIntegerCoordinates(self,xy):
         # 2 1 
         # 3 x 0
         #   4 5
         x,y = xy
-        return self.scale * complex((x + y / 2) * 1.5, y * math.sqrt(3)/2)
+        return self.scale * complex((x + y / 2) * math.sqrt(3), y * 1.5) / 2
         
-    def getPaths(self, ri, isFilled):
-        segments = set()        
-        for r in range(radius+1):
+    def getPaths(self, isFilled=bool):
+        segments = set()
+        for r in range(self.radius+1):
             for i in range(SymmetricHex.perimeter(r)):
-                if isFilled(data[r][i]):
-                    c = SymmetricHex.getIntegerCoordinates(r,i) # unimplemented
+                if isFilled(self[(r,i)]):
+                    c = SymmetricHex.getIntegerCoordinates((r,i))
                     for i in range(6):
-                        o1 = INTEGER_OFFSETS[i]
-                        o2 = INTEGER_OFFSETS[(i+1)%6]
+                        o1 = SymmetricHex.CORNERS[i]
+                        o2 = SymmetricHex.CORNERS[(i+1)%6]
                         p1 = (c[0]+o1[0],c[1]+o1[1])
                         p2 = (c[0]+o2[0],c[1]+o2[1])
                         if (p2,p1) in segments:
                             segments.remove((p2,p1))
                         else:
-                            segments.add((p1,p2))
-        paths = []
+                            segments.add((p1,p2))   
         while segments:
             s = next(iter(segments))
             segments.remove(s)
@@ -91,26 +89,55 @@ class SymmetricHex(object):
                 found = False
                 for s in segments:
                     if s[0] == path[-1]:
-                        path.append(s)
+                        path.append(s[1])
                         segments.remove(s)
-                        found = true
+                        found = True
                         break
+            geoPath = []
+            for p in path:
+                geoPath.append(self.fromIntegerCoordinates(p))
+            yield geoPath               
+            
+    def getSVG(self, isFilled=bool, units="", stroke="black", fill="blue", strokeWidth=0.3):
+        minX = float("inf")
+        minY = float("inf")
+        maxX = -minX
+        maxY = -minY
+        
+        out = "<path d='"
+        for path in self.getPaths(isFilled):
+            for z in path:
+                minX = min(minX,z.real)
+                minY = min(minY,z.imag)
+                maxX = max(maxX,z.real)
+                maxY = max(maxY,z.imag)
+            out += "M%.3f,%.3f " % (path[0].real,path[0].imag)
+            for xy in path[1:]:
+                out += "L%.3f,%.3f " % (xy.real,xy.imag)
+        out += "'\n stroke='%s' fill='%s' stroke-width='%.3f'/>\n" % (stroke,fill,strokeWidth)
+        out += "</svg>"
+        maxCoord = max(abs(minX),abs(minY),abs(maxX),abs(maxY))
+        out = ("<svg width='%.3f%s' height='%.3f%s' viewBox='%.3f %.3f %.3f %.3f' xmlns='http://www.w3.org/2000/svg'>\n" %
+                    (maxCoord*2,units,maxCoord*2,units,-maxCoord,-maxCoord,2*maxCoord,2*maxCoord)
+                    + out)
+        return out
         
     @staticmethod
     def equalPoints(a,b):
         return math.abs(a-b) < 0.01
+        
         
     @staticmethod
     def getIntegerCoordinates(ri):
         r,i = ri
         if r==0:
             return (0,0)
-        c = (r,0)
+        c = (r*SymmetricHex.FIRST_NEIGHBOR[0],r*SymmetricHex.FIRST_NEIGHBOR[1])
         angle = i//r
         for a in range(angle):
-            c = (c[0]+r*INTEGER_OFFSETS[a][0],c[1]+r*INTEGER_OFFSETS[a][1])
+            c = (c[0]+r*SymmetricHex.NEIGHBOR_OFFSETS[a][0],c[1]+r*SymmetricHex.NEIGHBOR_OFFSETS[a][1])
         offset = i-r*angle
-        return (c[0]+offset*INTEGER_OFFSETS[a][0],c[1]+offset*INTEGER_OFFSETS[a][1])
+        return (c[0]+offset*SymmetricHex.NEIGHBOR_OFFSETS[angle][0],c[1]+offset*SymmetricHex.NEIGHBOR_OFFSETS[angle][1])
             
     @staticmethod 
     def rowSize(r):
@@ -119,5 +146,9 @@ class SymmetricHex(object):
     @staticmethod
     def perimeter(r):
         return 1 if r==0 else 6*r
-        
-     
+
+if __name__ == '__main__':
+    import random
+
+    h = SymmetricHex(20,initializer=lambda ri: ri[0]<=5 and random.randint(0,2)!=0,outside=False,scale=10)
+    print(h.getSVG())
