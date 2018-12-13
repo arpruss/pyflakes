@@ -13,7 +13,7 @@ gamma = 0.0000685220
 alpha = 0.0718350008
 beta = 1.0949972145
 theta = 0.0591767342
-sigma = 0 # 1e-5
+sigma = 1e-5
 steps = 11849
 seed = 1
 
