@@ -4,8 +4,8 @@ import exportmesh
 from symmetrichex import SymmetricHex
 import random
 
-radius = 200
-steps = 30000
+radius = 500
+steps = 300
 rho = 0.46
 kappa = 0.0025
 beta = 1.9
