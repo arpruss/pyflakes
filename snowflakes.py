@@ -14,7 +14,7 @@ alpha = 0.0718350008
 beta = 1.0949972145
 theta = 0.0591767342
 sigma = 0 # 1e-5
-steps = 11849
+steps = 20000 # 11849
 seed = 1
 
 class HexState(object):
@@ -115,6 +115,32 @@ for i in range(steps):
 #    if i % 100 == 0:
 #        print(i)
 #        print(board.data[30])
+
+minC = float("inf")
+maxC = float("-inf")
+for hex in board.data:
+    if hex.a:
+        minC = min(minC, hex.c)
+        maxC = max(maxC, hex.c)
+
+def shader(hex):
+    def interpolateColor(y0,y1,c0,c1,y):
+        def clampColor(c):
+            ci = int(c+0.5)
+            if ci < 0:
+                return 0
+            elif ci > 255:
+                return 255
+            else:
+                return 255
+        out = tuple((c1[i]-c0[i])*float(y-y0)/(y1-y0)+c0[i] for i in range(3))
+        return "rgb(%d,%d,%d)" % out
+        
+    if hex.a:
+        return interpolateColor(minC,maxC,(220,220,255),(0,0,255),hex.c)
+    else:
+        return None
+        #return interpolateColor(0,2,(0,0,0),(255,255,255),hex.d)
         
 #exportmesh.saveSTL("flake.stl", board.getMesh(height=5))
-print(board.getSVG())
+print(board.getShadedSVG(shader))

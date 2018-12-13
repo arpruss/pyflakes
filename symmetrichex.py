@@ -159,7 +159,7 @@ class SymmetricHex(object):
         maxX = -minX
         maxY = -minY
         
-        out = ""
+        out = [None]
         
         for r in range(self.radius+1):
             for i in range(self.perimeter(r)):
@@ -167,20 +167,21 @@ class SymmetricHex(object):
                 shade = shader(self.data[index])
                 if shade is not None:
                     c = SymmetricHex.polarToIntegerCoordinates((r,i))
-                    out += "<path d='"
+                    path = "<path d='"
                     for i,s in enumerate(SymmetricHex.getTriangleSegments(c)):
-                        minX = min(minX,s[0].real)
-                        minY = min(minY,s[0].imag)
-                        maxX = max(maxX,s[0].real)
-                        maxY = max(maxY,s[0].imag)
-                        out += "M%.3f,%.3f " % ( "M" if i==0 else "L", s[0].real, s[0].imag)
-                    out += "' fill='%s'/>\n" % shade
-        out += "</svg>"
+                        z = self.displayFromIntegerCoordinates(s[0])
+                        minX = min(minX,z.real)
+                        minY = min(minY,z.imag)
+                        maxX = max(maxX,z.real)
+                        maxY = max(maxY,z.imag)
+                        path += "%s%.3f,%.3f " % ( "M" if i==0 else "L", z.real, z.imag)
+                    path += "' fill='%s' stroke='%s' stroke-width='0.1'/>" % (shade,shade)
+                    out.append(path)
+        out.append("</svg>")
         maxCoord = max(abs(minX),abs(minY),abs(maxX),abs(maxY))
-        out = ("<svg width='%.3f%s' height='%.3f%s' viewBox='%.3f %.3f %.3f %.3f' xmlns='http://www.w3.org/2000/svg'>\n" %
-                    (maxCoord*2,units,maxCoord*2,units,-maxCoord,-maxCoord,2*maxCoord,2*maxCoord)
-                    + out)
-        return out
+        out[0] = ("<svg width='%.3f%s' height='%.3f%s' viewBox='%.3f %.3f %.3f %.3f' xmlns='http://www.w3.org/2000/svg'>\n" %
+                    (maxCoord*2,units,maxCoord*2,units,-maxCoord,-maxCoord,2*maxCoord,2*maxCoord))
+        return "\n".join(out)
         
     def getMesh(self, height=1):
         mesh = []
