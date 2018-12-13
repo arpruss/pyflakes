@@ -4,16 +4,17 @@ import exportmesh
 from symmetrichex import SymmetricHex
 import random
 
-radius = 500
-steps = 300
-rho = 0.46
-kappa = 0.0025
-beta = 1.9
-alpha = 0.35
-theta = 0.112
-mu = 0.06
-gamma = 0.00006
-sigma = 1e-5
+#http://mkweb.bcgsc.ca/snowflakes/flake.mhtml?flake=morptel
+radius = 400
+rho = 0.4293822506
+kappa = 0.0022182122
+mu = 0.1170975026
+gamma = 0.0000685220
+alpha = 0.0718350008
+beta = 1.0949972145
+theta = 0.0591767342
+sigma = 0 # 1e-5
+steps = 11849
 seed = 1
 
 class HexState(object):
@@ -84,7 +85,7 @@ def evolve():
                 hex.a = True
                 hex.c += hex.b
                 hex.b = 0.
-                for y in board.getNeighbors(ri):
+                for y in set(board.getNeighbors(ri)):
                     board[y].filledNeighbors += 1
                 froze = True
 
@@ -109,8 +110,9 @@ unfilled = tuple(y for y in board.getCoordinates() if not board[y].a)
             
 for i in range(steps):
     evolve()
-    if i % 100 == 0:
-        print(i)
-        print(board.data[30])
+#    if i % 100 == 0:
+#        print(i)
+#        print(board.data[30])
         
-exportmesh.saveSTL("flake.stl", board.getMesh(height=5))
+#exportmesh.saveSTL("flake.stl", board.getMesh(height=5))
+print(board.getSVG())
