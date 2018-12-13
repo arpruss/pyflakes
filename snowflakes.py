@@ -61,7 +61,7 @@ def evolve():
                         s += nhex.d
                 scratch[ri] = s / 7.
             else:
-                scratch[ri] = sum(board[y].d for y in board.getNeighborsInclusive(ri)) / 7.
+                scratch[ri] = (hex.d + sum(board[y].d for y in board.getNeighbors(ri))) / 7.
             
     for ri in board.getCoordinates():
         hex = board[ri]
@@ -83,7 +83,7 @@ def evolve():
         if hex.bdy:
             n = board.countFilledNeighbors(ri)
             if ( ( (n == 1 or n == 2) and hex.b >= beta ) or 
-                 ( n == 3 and ( hex.b >= 1 or (hex.b >= alpha and sum(board[y].d for y in board.getNeighborsInclusive(ri)) < theta) ) ) or
+                 ( n == 3 and ( hex.b >= 1 or (hex.b >= alpha and hex.d + sum(board[y].d for y in board.getNeighbors(ri)) < theta) ) ) or
                  n >= 4 ):
                 hex.a = True
                 hex.c += hex.b

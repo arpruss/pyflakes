@@ -7,7 +7,7 @@ class SymmetricHex(object):
         self.data = [ [ init((r,i)) for i in range(SymmetricHex.rowSize(r)) ] for r in range(radius+1) ]
         self.scale = scale
         self.isFilled = isFilled
-        self.neighbors = [ [ tuple(self._getNeighborsInclusive((r,i))) for i in range(SymmetricHex.rowSize(r)) ] for r in range(radius+1) ]
+        self.neighbors = [ [ tuple(self._getNeighbors((r,i))) for i in range(SymmetricHex.rowSize(r)) ] for r in range(radius+1) ]
         
     def getCoordinates(self):
         for r in range(self.radius+1):
@@ -52,10 +52,12 @@ class SymmetricHex(object):
         self.data[ri[0]][ri[1]] = v
             
     def getNeighbors(self, ri):
-        return self.neighbors[ri[0]][ri[1]][1:]
+        return self.neighbors[ri[0]][ri[1]]
         
     def getNeighborsInclusive(self, ri):
-        return self.neighbors[ri[0]][ri[1]]
+        yield ri
+        for nb in self.getNeighbors(ri):
+            yield nb
         
     def _getNeighbors(self, ri):
         r,i = ri
