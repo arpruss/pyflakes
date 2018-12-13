@@ -59,13 +59,13 @@ def evolve():
                     s += hex.d
                 else:
                     s += nhex.d
-            new_d[i] = s / 7.
+            scratch[i] = s / 7.
         else:
-            new_d[i] = (hex.d + sum(board[y].d for y in board.neighbors[i])) / 7.
+            scratch[i] = (hex.d + sum(board[y].d for y in board.neighbors[i])) / 7.
             
     for i in unfilled:
         hex = board[i]
-        d = new_d[i]
+        d = scratch[i]
         
         # ii. Freezing
         if hex.filledNeighbors:
@@ -75,18 +75,23 @@ def evolve():
         else:
             hex.d = d
             
+        # for next step
+        scratch[i] = False
+            
     froze = False
     for i in unfilled:
         hex = board[i]
         if hex.filledNeighbors:
             # iii. Attachment
-            n = hex.filledNeighbors
+            n = abs(hex.filledNeighbors)
             if ( ( hex.b >= beta and n <= 2 ) or 
                  ( n == 3 and ( hex.b >= 1 or (hex.b >= alpha and sum(board[y].d for y in board.neighbors[i]) < theta) ) ) or
                  n >= 4 ):
                 hex.a = True
                 hex.c += hex.b
                 hex.b = 0.
+                for i in board.neighbors[i]:
+                    scratch[i] = True
                 froze = True
 
     if froze:
@@ -95,10 +100,11 @@ def evolve():
             hex = board[i]
             if not hex.a:
                 unfilled.append(i)
-                hex.filledNeighbors = 0
-                for y in board.neighbors[i]:
-                    if board[y].a:
-                        hex.filledNeighbors += 1
+                if scratch[i]:
+                    hex.filledNeighbors = 0
+                    for y in board.neighbors[i]:
+                        if board[y].a:
+                            hex.filledNeighbors += 1
                 
     # iv. Melting
     for i in unfilled:
@@ -113,7 +119,7 @@ def evolve():
 
 board = SymmetricHex(radius, initializer=initializer,  
             scale=5, isFilled=lambda hex:hex.a)
-new_d = [0 for i in board.indices]
+scratch = [0 for i in board.indices]
 unfilled = tuple(y for y in board.indices if not board[y].a)
             
 for i in range(steps):
