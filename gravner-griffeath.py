@@ -14,7 +14,7 @@ alpha = 0.0718350008
 beta = 1.0949972145
 theta = 0.0591767342
 sigma = 1e-5
-steps = 11849
+steps = 118 # 49
 seed = 1
 
 class HexState(object):
@@ -154,7 +154,7 @@ def shader(hex):
         return None
         #return interpolateColor(0,2,(0,0,0),(255,255,255),hex.d)
         
-#exportmesh.saveSTL("flake.stl", board.getMesh(height=5))
+exportmesh.saveSTL("morptel.stl", board.getMesh(height=10))
 #print(board.getShadedSVG(shader))
-print(board.getSVG())
+#print(board.getSVG())
 

@@ -129,6 +129,7 @@ def saveSTL(filename, mesh, swapYZ=False, quiet=False, adjustCoordinates=False):
         for vertex in triangle:
             vertex = matrix*vertex
             minVector = Vector(min(minVector[i], vertex[i]) for i in range(3))
+            
     if adjustCoordinates:
         minVector -= Vector(0.001,0.001,0.001) # make sure all STL coordinates are strictly positive as per Wikipedia
     else:
@@ -150,6 +151,7 @@ def saveSTL(filename, mesh, swapYZ=False, quiet=False, adjustCoordinates=False):
                 normal = (Vector(tri[1])-Vector(tri[0])).cross(Vector(tri[2])-Vector(tri[0])).normalize()
                 write(pack("<3f", *(matrix*normal)))
             except:
+                print(tri)
                 continue
             for vertex in tri:
                 write(pack("<3f", *(matrix*(vertex-minVector))))

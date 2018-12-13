@@ -190,9 +190,9 @@ class SymmetricHex(object):
             return (xy.real,xy.imag,z)
 
         for path in self.getPaths():
-            for i in range(len(path)):
+            for i in range(len(path)-1):
                 a = path[i]
-                b = path[(i+1)%len(path)]
+                b = path[i+1]
                 mesh.append( ( level(a,0), level(b,0), level(b,height) ) )
                 mesh.append( ( level(a,0), level(b,height), level(a,height) ) )
                 

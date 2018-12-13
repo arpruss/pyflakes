@@ -8,8 +8,10 @@ gamma = 0.003
 gamma_variation_amplitude_ratio = 0.5
 random_beta_variation = 0.4
 radius = 200
-steps = 40
+steps = 400
 seed = 1
+scale = 2
+height = 3
 
 random.seed(seed)
 
@@ -20,7 +22,7 @@ def initializer(i):
         return beta+random.uniform(-random_beta_variation/2,random_beta_variation/2)
 
 board = SymmetricHex(radius, initializer=initializer,  
-            scale=5, isFilled=lambda v : v >= 1)
+            scale=scale, isFilled=lambda v : v >= 1)
 scratch = [0 for i in board.indices]
 
 def receptive(i):
@@ -51,4 +53,4 @@ for i in range(steps):
     evolve()
 
 print(board.getSVG())
-exportmesh.saveSTL("reiter.stl", board.getMesh(height=5))
+exportmesh.saveSTL("reiter.stl", board.getMesh(height=height))
