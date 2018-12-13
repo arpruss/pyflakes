@@ -48,5 +48,5 @@ def evolve():
 for i in range(steps):
     evolve()
 
+print(board.getSVG())
 exportmesh.saveSTL("reiter.stl", board.getMesh(height=5))
-

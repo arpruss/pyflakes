@@ -4,19 +4,16 @@ class SymmetricHex(object):
     def __init__(self,radius, initializer=0, scale=1., isFilled=bool):
         self.radius = radius
         init = initializer if callable(initializer) else lambda ri: initializer
-        self.data = [ [ init((r,i)) for i in range(SymmetricHex.rowSize(r)) ] for r in range(radius+1) ]
+        self.data = tuple( [ init((r,i)) for i in range(SymmetricHex.rowSize(r)) ] for r in range(radius+1) )
         self.scale = scale
         self.isFilled = isFilled
-        self.neighbors = [ [ tuple(self._getNeighbors((r,i))) for i in range(SymmetricHex.rowSize(r)) ] for r in range(radius+1) ]
+        self.neighbors = tuple( tuple( tuple(self._getNeighbors((r,i))) for i in range(SymmetricHex.rowSize(r)) ) for r in range(radius+1) )
         
     def getCoordinates(self):
         for r in range(self.radius+1):
             for i in range(SymmetricHex.rowSize(r)):
                 yield (r,i)
                 
-    def countFilledNeighbors(self, ri):
-        return sum(1 for n in self.getNeighbors(ri) if self.isFilled(self[n]))
-        
     def reduceCoordinates(self,ri):
         r,i = ri
         if r < 0:

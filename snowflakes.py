@@ -43,41 +43,40 @@ def initializer(ri):
         return HexState(a=False,b=0,c=0,d=rho,filledNeighbors=1)
     else:
         return HexState(a=False,b=0,c=0,d=rho,filledNeighbors=0)
-        
+
 def evolve():
-    # i. Diffusion
-    for ri in board.getCoordinates():
-        hex = board[ri]
-        if not hex.a:
-            if hex.filledNeighbors:
-                s = hex.d
-                for y in board.getNeighbors(ri):
-                    nhex = board[y]
-                    if nhex.a:
-                        s += hex.d
-                    else:
-                        s += nhex.d
-                scratch[ri] = s / 7.
-            else:
-                scratch[ri] = (hex.d + sum(board[y].d for y in board.getNeighbors(ri))) / 7.
-            
-    for ri in board.getCoordinates():
-        hex = board[ri]
-        
-        if not hex.a:
-            hex.d = scratch[ri]
+    global unfilled
     
-            # ii. Freezing
-            if hex.filledNeighbors:
-                hex.b += (1-kappa)*hex.d
-                hex.c += kappa*hex.d
-                hex.d = 0.
+    # i. Diffusion
+    for ri in unfilled:
+        hex = board[ri]
+        if hex.filledNeighbors:
+            s = hex.d
+            for y in board.getNeighbors(ri):
+                nhex = board[y]
+                if nhex.a:
+                    s += hex.d
+                else:
+                    s += nhex.d
+            scratch[ri] = s / 7.
+        else:
+            scratch[ri] = (hex.d + sum(board[y].d for y in board.getNeighbors(ri))) / 7.
+            
+    for ri in unfilled:
+        hex = board[ri]
+        hex.d = scratch[ri]
+
+        # ii. Freezing
+        if hex.filledNeighbors:
+            hex.b += (1-kappa)*hex.d
+            hex.c += kappa*hex.d
+            hex.d = 0.
                 
     # iii. Attachment
-
-    for ri in board.getCoordinates():
+    froze = False
+    for ri in unfilled:
         hex = board[ri]
-        if hex.filledNeighbors and not hex.a:
+        if hex.filledNeighbors:
             n = hex.filledNeighbors
             if ( ( hex.b >= beta and n <= 2 ) or 
                  ( n == 3 and ( hex.b >= 1 or (hex.b >= alpha and hex.d + sum(board[y].d for y in board.getNeighbors(ri)) < theta) ) ) or
@@ -87,23 +86,27 @@ def evolve():
                 hex.b = 0.
                 for y in board.getNeighbors(ri):
                     board[y].filledNeighbors += 1
+                froze = True
+
+    if froze:
+        unfilled = tuple(y for y in board.getCoordinates() if not board[y].a)
                 
     # iv. Melting
-    for ri in board.getCoordinates():
+    for ri in unfilled:
         hex = board[ri]
-        if not hex.a:
-            if hex.filledNeighbors:
-                hex.d += mu * hex.b + gamma * hex.c
-                hex.b *= 1-mu
-                hex.c *= 1-gamma
+        if hex.filledNeighbors:
+            hex.d += mu * hex.b + gamma * hex.c
+            hex.b *= 1-mu
+            hex.c *= 1-gamma
 
-            # v. Noise
-            hex.d += random.choice((-1,1))*sigma*hex.d
+        # v. Noise
+        hex.d += random.choice((-1,1))*sigma*hex.d
 
 board = SymmetricHex(radius, initializer=initializer,  
             scale=5, isFilled=lambda hex:hex.a)
 scratch = SymmetricHex(radius, initializer=0)
-    
+unfilled = tuple(y for y in board.getCoordinates() if not board[y].a)
+            
 for i in range(steps):
     evolve()
     if i % 100 == 0:
