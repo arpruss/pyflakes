@@ -59,28 +59,30 @@ def evolve():
                     s += hex.d
                 else:
                     s += nhex.d
-            scratch[ri] = s / 7.
+            new_d[ri] = s / 7.
         else:
-            scratch[ri] = (hex.d + sum(board[y].d for y in board.getNeighbors(ri))) / 7.
+            new_d[ri] = (hex.d + sum(board[y].d for y in board.getNeighbors(ri))) / 7.
             
     for ri in unfilled:
         hex = board[ri]
-        hex.d = scratch[ri]
-
+        d = new_d[ri]
+        
         # ii. Freezing
         if hex.filledNeighbors:
-            hex.b += (1-kappa)*hex.d
-            hex.c += kappa*hex.d
+            hex.b += (1-kappa)*d
+            hex.c += kappa*d
             hex.d = 0.
-                
-    # iii. Attachment
+        else:
+            hex.d = d
+            
     froze = False
     for ri in unfilled:
         hex = board[ri]
         if hex.filledNeighbors:
+            # iii. Attachment
             n = hex.filledNeighbors
             if ( ( hex.b >= beta and n <= 2 ) or 
-                 ( n == 3 and ( hex.b >= 1 or (hex.b >= alpha and hex.d + sum(board[y].d for y in board.getNeighbors(ri)) < theta) ) ) or
+                 ( n == 3 and ( hex.b >= 1 or (hex.b >= alpha and sum(board[y].d for y in board.getNeighbors(ri)) < theta) ) ) or
                  n >= 4 ):
                 hex.a = True
                 hex.c += hex.b
@@ -105,7 +107,7 @@ def evolve():
 
 board = SymmetricHex(radius, initializer=initializer,  
             scale=5, isFilled=lambda hex:hex.a)
-scratch = SymmetricHex(radius, initializer=0)
+new_d = SymmetricHex(radius, initializer=0)
 unfilled = tuple(y for y in board.getCoordinates() if not board[y].a)
             
 for i in range(steps):

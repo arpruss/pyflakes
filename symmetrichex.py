@@ -1,20 +1,43 @@
 import math
+import sys
+
+if sys.version_info >= (3,0):
+    xrange = range
+    
+def binarySearch(list, value, start=None, end=None):
+    if start is None:
+        start = 0
+    if end is None:
+        end = len(list)
+    while start < end:
+        mid = (start+end) // 2
+        if list[mid] < value:
+            start = mid+1
+        elif value < list[mid]:
+            end = mid
+        else:
+            if list[mid] != value:
+                raise ValueError()
+            return mid
+    raise ValueError()
 
 class SymmetricHex(object):
     def __init__(self,radius, initializer=0, scale=1., isFilled=bool):
         self.radius = radius
         init = initializer if callable(initializer) else lambda ri: initializer
-        self.data = tuple( [ init((r,i)) for i in range(SymmetricHex.rowSize(r)) ] for r in range(radius+1) )
+        self.count = sum(SymmetricHex.rowSize(r) for r in range(radius+1))
+        self.indices = tuple(i for i in range(self.count))
+        self.toPolar = tuple( (r,i) for r in range(radius+1) for i in range(SymmetricHex.rowSize(r)) )
+        self.toIntegerCoordinates = tuple( SymmetricHex.polarToIntegerCoordinates(ri) for ri in self.toPolar )
+        self.data = [ init(self.toPolar[i]) for i in self.indices ]
+        self.neighbors = tuple( tuple(self.polarToIndex(y) for y in self._getNeighbors(self.toPolar[i])) for i in self.indices )
         self.scale = scale
         self.isFilled = isFilled
-        self.neighbors = tuple( tuple( tuple(self._getNeighbors((r,i))) for i in range(SymmetricHex.rowSize(r)) ) for r in range(radius+1) )
         
-    def getCoordinates(self):
-        for r in range(self.radius+1):
-            for i in range(SymmetricHex.rowSize(r)):
-                yield (r,i)
-                
-    def reduceCoordinates(self,ri):
+    def polarToIndex(self,ri):
+        return binarySearch(self.toPolar,ri)
+        
+    def reducePolar(self,ri):
         r,i = ri
         if r < 0:
             return (1,0)
@@ -32,30 +55,12 @@ class SymmetricHex(object):
         else:
             return (r,i)
         
-    def getData(self, ri):
-        try:
-            return self.data[ri]
-        except:
-            r,i = self.reduceCoordinates(ri)
-            return self.data[r][i]
+    def __getitem__(self, i):
+        return self.data[i]
             
-    def __getitem__(self, ri):
-        if ri[0] <= self.radius:
-            return self.data[ri[0]][ri[1]]
-        else:
-            return self[self.reduceCoordinates(ri)]
+    def __setitem__(self, i, v):
+        self.data[i] = v
             
-    def __setitem__(self, ri, v):
-        self.data[ri[0]][ri[1]] = v
-            
-    def getNeighbors(self, ri):
-        return self.neighbors[ri[0]][ri[1]]
-        
-    def getNeighborsInclusive(self, ri):
-        yield ri
-        for nb in self.getNeighbors(ri):
-            yield nb
-        
     def _getNeighbors(self, ri):
         r,i = ri
         
@@ -66,22 +71,15 @@ class SymmetricHex(object):
         else:
             if i == 0:
                 nn = ((r,1),(r,1),(r+1,0),(r+1,1),(r+1,1),(r-1,0))
-            elif i >= SymmetricHex.rowSize(r)-2:
-                nn = ((r,i-1),(r,i+1),(r+1,i),(r+1,i+1),(r-1,i),(r-1,i-1))
             else:
                 nn = ((r,i-1),(r,i+1),(r+1,i),(r+1,i+1),(r-1,i),(r-1,i-1))
-            return map(self.reduceCoordinates,nn)
-        
-    def _getNeighborsInclusive(self, ri):
-        yield ri
-        for y in self._getNeighbors(ri):
-            yield y
+            return map(self.reducePolar,nn)
         
     FIRST_NEIGHBOR = (-1,2)
     NEIGHBOR_OFFSETS = ((-1,-1),(1,-2),(2,-1),(1,1),(-1,2),(-2,1))
     CORNERS = ((1,0),(0,1),(-1,1),(-1,0),(0,-1),(1,-1))
         
-    def fromIntegerCoordinates(self,xy):
+    def displayFromIntegerCoordinates(self,xy):
         # 2 1 
         # 3 x 0
         #   4 5
@@ -90,9 +88,10 @@ class SymmetricHex(object):
         
     def getTriangleIntegerCoordinates(self):
         for r in range(self.radius+1):
-            for i in range(SymmetricHex.perimeter(r)):
-                if self.isFilled(self.getData((r,i))):
-                    yield SymmetricHex.getIntegerCoordinates((r,i))
+            for i in range(self.perimeter(r)):
+                index = self.polarToIndex(self.reducePolar((r,i)))
+                if self.isFilled(self.data[index]):
+                    yield SymmetricHex.polarToIntegerCoordinates((r,i))
         
     def getPaths(self):
         segments = set()
@@ -121,7 +120,7 @@ class SymmetricHex(object):
                         break
             geoPath = []
             for p in path:
-                geoPath.append(self.fromIntegerCoordinates(p))
+                geoPath.append(self.displayFromIntegerCoordinates(p))
             yield geoPath               
             
     def getSVG(self, units="", stroke="black", fill="blue", strokeWidth=0.3):
@@ -162,12 +161,12 @@ class SymmetricHex(object):
                 mesh.append( ( level(a,0), level(b,height), level(a,height) ) )
                 
         for c in self.getTriangleIntegerCoordinates():
-            centerXY = self.fromIntegerCoordinates(c)
+            centerXY = self.displayFromIntegerCoordinates(c)
             for i in range(6):
                 o1 = SymmetricHex.CORNERS[i]
                 o2 = SymmetricHex.CORNERS[(i+1)%6]
-                xy1 = self.fromIntegerCoordinates((c[0]+o1[0],c[1]+o1[1]))
-                xy2 = self.fromIntegerCoordinates((c[0]+o2[0],c[1]+o2[1]))
+                xy1 = self.displayFromIntegerCoordinates((c[0]+o1[0],c[1]+o1[1]))
+                xy2 = self.displayFromIntegerCoordinates((c[0]+o2[0],c[1]+o2[1]))
                 mesh.append( ( level(centerXY,height), level(xy1,height), level(xy2,height) ) )
                 mesh.append( ( level(centerXY,0), level(xy2,0), level(xy1,0) ) )             
 
@@ -179,7 +178,7 @@ class SymmetricHex(object):
         
         
     @staticmethod
-    def getIntegerCoordinates(ri):
+    def polarToIntegerCoordinates(ri):
         r,i = ri
         if r==0:
             return (0,0)
