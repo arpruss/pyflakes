@@ -36,8 +36,8 @@ class HexState(object):
     
     __nonzero__ = __bool__
     
-def initializer(ri):
-    r,i = ri
+def initializer(i):
+    r,i = i
     if r == 0:
         return HexState(a=True,b=0,c=1,d=0,filledNeighbors=0)
     elif r == 1:
@@ -49,23 +49,23 @@ def evolve():
     global unfilled
     
     # i. Diffusion
-    for ri in unfilled:
-        hex = board[ri]
+    for i in unfilled:
+        hex = board[i]
         if hex.filledNeighbors:
             s = hex.d
-            for y in board.getNeighbors(ri):
+            for y in board.neighbors[i]:
                 nhex = board[y]
                 if nhex.a:
                     s += hex.d
                 else:
                     s += nhex.d
-            new_d[ri] = s / 7.
+            new_d[i] = s / 7.
         else:
-            new_d[ri] = (hex.d + sum(board[y].d for y in board.getNeighbors(ri))) / 7.
+            new_d[i] = (hex.d + sum(board[y].d for y in board.neighbors[i])) / 7.
             
-    for ri in unfilled:
-        hex = board[ri]
-        d = new_d[ri]
+    for i in unfilled:
+        hex = board[i]
+        d = new_d[i]
         
         # ii. Freezing
         if hex.filledNeighbors:
@@ -76,27 +76,27 @@ def evolve():
             hex.d = d
             
     froze = False
-    for ri in unfilled:
-        hex = board[ri]
+    for i in unfilled:
+        hex = board[i]
         if hex.filledNeighbors:
             # iii. Attachment
             n = hex.filledNeighbors
             if ( ( hex.b >= beta and n <= 2 ) or 
-                 ( n == 3 and ( hex.b >= 1 or (hex.b >= alpha and sum(board[y].d for y in board.getNeighbors(ri)) < theta) ) ) or
+                 ( n == 3 and ( hex.b >= 1 or (hex.b >= alpha and sum(board[y].d for y in board.neighbors[i]) < theta) ) ) or
                  n >= 4 ):
                 hex.a = True
                 hex.c += hex.b
                 hex.b = 0.
-                for y in set(board.getNeighbors(ri)):
+                for y in board.uniqueNeighbors[i]:
                     board[y].filledNeighbors += 1
                 froze = True
 
     if froze:
-        unfilled = tuple(y for y in board.getCoordinates() if not board[y].a)
+        unfilled = tuple(y for y in board.indices if not board[y].a)
                 
     # iv. Melting
-    for ri in unfilled:
-        hex = board[ri]
+    for i in unfilled:
+        hex = board[i]
         if hex.filledNeighbors:
             hex.d += mu * hex.b + gamma * hex.c
             hex.b *= 1-mu
@@ -107,8 +107,8 @@ def evolve():
 
 board = SymmetricHex(radius, initializer=initializer,  
             scale=5, isFilled=lambda hex:hex.a)
-new_d = SymmetricHex(radius, initializer=0)
-unfilled = tuple(y for y in board.getCoordinates() if not board[y].a)
+new_d = [0 for i in board.indices]
+unfilled = tuple(y for y in board.indices if not board[y].a)
             
 for i in range(steps):
     evolve()

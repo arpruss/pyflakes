@@ -31,6 +31,7 @@ class SymmetricHex(object):
         self.toIntegerCoordinates = tuple( SymmetricHex.polarToIntegerCoordinates(ri) for ri in self.toPolar )
         self.data = [ init(self.toPolar[i]) for i in self.indices ]
         self.neighbors = tuple( tuple(self.polarToIndex(y) for y in self._getNeighbors(self.toPolar[i])) for i in self.indices )
+        self.uniqueNeighbors = tuple( tuple(set(n)) for n in self.neighbors )
         self.scale = scale
         self.isFilled = isFilled
         
