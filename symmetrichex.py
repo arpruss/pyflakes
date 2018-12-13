@@ -93,19 +93,24 @@ class SymmetricHex(object):
                 index = self.polarToIndex(self.reducePolar((r,i)))
                 if self.isFilled(self.data[index]):
                     yield SymmetricHex.polarToIntegerCoordinates((r,i))
+                    
+    @staticmethod
+    def getTriangleSegments(c):
+        for i in range(6):
+            o1 = SymmetricHex.CORNERS[i]
+            o2 = SymmetricHex.CORNERS[(i+1)%6]
+            p1 = (c[0]+o1[0],c[1]+o1[1])
+            p2 = (c[0]+o2[0],c[1]+o2[1])
+            yield (p1,p2)
         
     def getPaths(self):
         segments = set()
         for c in self.getTriangleIntegerCoordinates():
-            for i in range(6):
-                o1 = SymmetricHex.CORNERS[i]
-                o2 = SymmetricHex.CORNERS[(i+1)%6]
-                p1 = (c[0]+o1[0],c[1]+o1[1])
-                p2 = (c[0]+o2[0],c[1]+o2[1])
-                if (p2,p1) in segments:
-                    segments.remove((p2,p1))
+            for s in SymmetricHex.getTriangleSegments(c):
+                if (s[1],s[0]) in segments:
+                    segments.remove((s[1],s[0]))
                 else:
-                    segments.add((p1,p2))   
+                    segments.add(s)   
         while segments:
             s = next(iter(segments))
             segments.remove(s)
@@ -141,6 +146,35 @@ class SymmetricHex(object):
             for xy in path[1:]:
                 out += "L%.3f,%.3f " % (xy.real,xy.imag)
         out += "'\n stroke='%s' fill='%s' stroke-width='%.3f'/>\n" % (stroke,fill,strokeWidth)
+        out += "</svg>"
+        maxCoord = max(abs(minX),abs(minY),abs(maxX),abs(maxY))
+        out = ("<svg width='%.3f%s' height='%.3f%s' viewBox='%.3f %.3f %.3f %.3f' xmlns='http://www.w3.org/2000/svg'>\n" %
+                    (maxCoord*2,units,maxCoord*2,units,-maxCoord,-maxCoord,2*maxCoord,2*maxCoord)
+                    + out)
+        return out
+        
+    def getShadedSVG(self, shader, units=""):
+        minX = float("inf")
+        minY = float("inf")
+        maxX = -minX
+        maxY = -minY
+        
+        out = ""
+        
+        for r in range(self.radius+1):
+            for i in range(self.perimeter(r)):
+                index = self.polarToIndex(self.reducePolar((r,i)))
+                shade = shader(self.data[index])
+                if shade is not None:
+                    c = SymmetricHex.polarToIntegerCoordinates((r,i))
+                    out += "<path d='"
+                    for i,s in enumerate(SymmetricHex.getTriangleSegments(c)):
+                        minX = min(minX,s[0].real)
+                        minY = min(minY,s[0].imag)
+                        maxX = max(maxX,s[0].real)
+                        maxY = max(maxY,s[0].imag)
+                        out += "M%.3f,%.3f " % ( "M" if i==0 else "L", s[0].real, s[0].imag)
+                    out += "' fill='%s'/>\n" % shade
         out += "</svg>"
         maxCoord = max(abs(minX),abs(minY),abs(maxX),abs(maxY))
         out = ("<svg width='%.3f%s' height='%.3f%s' viewBox='%.3f %.3f %.3f %.3f' xmlns='http://www.w3.org/2000/svg'>\n" %
