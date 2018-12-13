@@ -14,7 +14,7 @@ alpha = 0.0718350008
 beta = 1.0949972145
 theta = 0.0591767342
 sigma = 0 # 1e-5
-steps = 20000 # 11849
+steps = 11849
 seed = 1
 
 class HexState(object):
@@ -87,12 +87,18 @@ def evolve():
                 hex.a = True
                 hex.c += hex.b
                 hex.b = 0.
-                for y in board.uniqueNeighbors[i]:
-                    board[y].filledNeighbors += 1
                 froze = True
 
     if froze:
-        unfilled = tuple(y for y in board.indices if not board[y].a)
+        unfilled = []
+        for i in board.indices:
+            hex = board[i]
+            if not hex.a:
+                unfilled.append(i)
+                hex.filledNeighbors = 0
+                for y in board.neighbors[i]:
+                    if board[y].a:
+                        hex.filledNeighbors += 1
                 
     # iv. Melting
     for i in unfilled:
@@ -143,4 +149,6 @@ def shader(hex):
         #return interpolateColor(0,2,(0,0,0),(255,255,255),hex.d)
         
 #exportmesh.saveSTL("flake.stl", board.getMesh(height=5))
-print(board.getShadedSVG(shader))
+#print(board.getShadedSVG(shader))
+print(board.getSVG())
+
