@@ -14,8 +14,10 @@ alpha = 0.0718350008
 beta = 1.0949972145
 theta = 0.0591767342
 sigma = 1e-5
-steps = 118 # 49
+steps = 11849
 seed = 1
+targetSize = 190
+height = 3
 
 class HexState(object):
     def __init__(self,a,b,c,d,filledNeighbors):
@@ -118,7 +120,7 @@ def evolve():
         hex.d += random.choice((-1,1))*sigma*hex.d
 
 board = SymmetricHex(radius, initializer=initializer,  
-            scale=5, isFilled=lambda hex:hex.a)
+            scale=1, isFilled=lambda hex:hex.a)
 scratch = [0 for i in board.indices]
 unfilled = tuple(y for y in board.indices if not board[y].a)
             
@@ -154,7 +156,8 @@ def shader(hex):
         return None
         #return interpolateColor(0,2,(0,0,0),(255,255,255),hex.d)
         
-exportmesh.saveSTL("morptel.stl", board.getMesh(height=10))
+board.scale = targetSize / (2. * board.getFilledRadius())    
+exportmesh.saveSTL("morptel.stl", board.getMesh(height=height))
 #print(board.getShadedSVG(shader))
 #print(board.getSVG())
 

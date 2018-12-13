@@ -35,6 +35,13 @@ class SymmetricHex(object):
         self.scale = scale
         self.isFilled = isFilled
         
+    def getFilledRadius(self):
+        r = 0
+        for i in self.indices:
+            if self.isFilled(self.data[i]):
+                r = max(r, self.toPolar[i][0])
+        return (r+0.5)*self.scale
+        
     def polarToIndex(self,ri):
         return binarySearch(self.toPolar,ri)
         
