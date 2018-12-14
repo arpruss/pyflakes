@@ -93,11 +93,13 @@ class SymmetricHex(object):
         x,y = xy
         return 0.5 * complex((x + y / 2.) * math.sqrt(3), y * 1.5)
         
-    def getTriangleIntegerCoordinates(self):
+    def getTriangleIntegerCoordinates(self, filter=None):
+        if filter is None:
+            filter = self.isFilled
         for r in range(self.radius+1):
             for i in range(self.perimeter(r)):
                 index = self.polarToIndex(self.reducePolar((r,i)))
-                if self.isFilled(self.data[index]):
+                if filter(self.data[index]):
                     yield SymmetricHex.polarToIntegerCoordinates((r,i))
                     
     @staticmethod
@@ -112,10 +114,13 @@ class SymmetricHex(object):
     def getScale(self, diameter):
         return diameter / (2.*self.getFilledRadius())
         
-    def getPaths(self, diameter=150):
+    def getPaths(self, diameter=150, filter=None):
+        if filter is None:
+            filter = self.isFilled
+        
         scale = self.getScale(diameter)
         segments = set()
-        for c in self.getTriangleIntegerCoordinates():
+        for c in self.getTriangleIntegerCoordinates(filter=filter):
             for s in SymmetricHex.getTriangleSegments(c):
                 if (s[1],s[0]) in segments:
                     segments.remove((s[1],s[0]))
@@ -194,30 +199,70 @@ class SymmetricHex(object):
                     (maxCoord*2,units,maxCoord*2,units,-maxCoord,-maxCoord,2*maxCoord,2*maxCoord))
         return "\n".join(out)
         
-    def getMesh(self, diameter=150, height=2):
+    def getMesh(self, diameter=150, levels=1, height=3, getHexHeight=None):
+        if getHexHeight is None:
+            getHexHeight = lambda hex : 1
+            minHeight = 0
+            maxHeight = 1
+        else:
+            minHeight = float("inf")
+            maxHeight = float("-inf")
+            
+            for i in self.indices:
+                h = getHexHeight(self.data[i])
+                minHeight = min(minHeight,h)
+                maxHeight = max(maxHeight,h)
+                
+        def getLevel(hex):
+            if not self.isFilled(hex):
+                return -1
+            
+            hexHeight = getHexHeight(hex)
+            
+            l = math.floor((hexHeight-minHeight)/(maxHeight-minHeight)*levels - 1)
+            if l < 0:
+                return 0
+            elif l >= levels:
+                return levels-1
+            else:
+                return int(l)
+            
         mesh = []
         
         scale = self.getScale(diameter)
         
-        def level(xy,z):
-            return (xy.real,xy.imag,z)
+        prevOutHeight = 0
+        
+        for level in range(levels):
+            outHeight = (level+1.)*height/levels
 
-        for path in self.getPaths(diameter=diameter):
-            for i in range(len(path)-1):
-                a = path[i]
-                b = path[i+1]
-                mesh.append( ( level(a,0), level(b,0), level(b,height) ) )
-                mesh.append( ( level(a,0), level(b,height), level(a,height) ) )
-                
-        for c in self.getTriangleIntegerCoordinates():
-            centerXY = scale*self.displayFromIntegerCoordinates(c)
-            for i in range(6):
-                o1 = SymmetricHex.CORNERS[i]
-                o2 = SymmetricHex.CORNERS[(i+1)%6]
-                xy1 = scale*self.displayFromIntegerCoordinates((c[0]+o1[0],c[1]+o1[1]))
-                xy2 = scale*self.displayFromIntegerCoordinates((c[0]+o2[0],c[1]+o2[1]))
-                mesh.append( ( level(centerXY,height), level(xy1,height), level(xy2,height) ) )
-                mesh.append( ( level(centerXY,0), level(xy2,0), level(xy1,0) ) )             
+            def atZ(xy,z):
+                return (xy.real,xy.imag,z)
+
+            found = False
+            
+            for path in self.getPaths(diameter=diameter, filter = lambda hex : getLevel(hex) >= level):
+                found = True
+                for i in range(len(path)-1):
+                    a = path[i]
+                    b = path[i+1]
+                    mesh.append( ( atZ(a,prevOutHeight), atZ(b,prevOutHeight), atZ(b,outHeight) ) )
+                    mesh.append( ( atZ(a,prevOutHeight), atZ(b,outHeight), atZ(a,outHeight) ) )
+                    
+            if not found:
+                break
+                    
+            for c in self.getTriangleIntegerCoordinates(filter = lambda hex : getLevel(hex) == level):
+                centerXY = scale*self.displayFromIntegerCoordinates(c)
+                for i in range(6):
+                    o1 = SymmetricHex.CORNERS[i]
+                    o2 = SymmetricHex.CORNERS[(i+1)%6]
+                    xy1 = scale*self.displayFromIntegerCoordinates((c[0]+o1[0],c[1]+o1[1]))
+                    xy2 = scale*self.displayFromIntegerCoordinates((c[0]+o2[0],c[1]+o2[1]))
+                    mesh.append( ( atZ(centerXY,outHeight), atZ(xy1,outHeight), atZ(xy2,outHeight) ) )
+                    mesh.append( ( atZ(centerXY,0), atZ(xy2,0), atZ(xy1,0) ) )             
+                    
+            prevOutHeight = outHeight
 
         return mesh
         

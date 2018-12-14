@@ -54,7 +54,7 @@ def evolve():
 for i in range(steps):
     evolve()
 
-exportmesh.saveSTL(name+".stl", board.getMesh(diameter=targetSize,height=height))
+exportmesh.saveSTL(name+".stl", board.getMesh(diameter=targetSize,height=height,levels=5,getHexHeight=lambda hex:hex))
 print("Saving %s.svg" % name)
 with open(name+".svg", "w") as f:
     f.write(board.getSVG(diameter=targetSize))
