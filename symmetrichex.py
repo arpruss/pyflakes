@@ -145,23 +145,22 @@ class SymmetricHex(object):
         maxX = -minX
         maxY = -minY
         
-        out = "<path d='"
+        out = [None, "<path d='"]
         for path in self.getPaths(diameter=diameter):
             for z in path:
                 minX = min(minX,z.real)
                 minY = min(minY,z.imag)
                 maxX = max(maxX,z.real)
                 maxY = max(maxY,z.imag)
-            out += "M%.3f,%.3f " % (path[0].real,path[0].imag)
+            out.append("M%.3f,%.3f " % (path[0].real,path[0].imag))
             for xy in path[1:]:
-                out += "L%.3f,%.3f " % (xy.real,xy.imag)
-        out += "'\n stroke='%s' fill='%s' stroke-width='%.3f'/>\n" % (stroke,fill,strokeWidth)
-        out += "</svg>"
+                out.append("L%.3f,%.3f " % (xy.real,xy.imag))
+        out.append("'\n stroke='%s' fill='%s' stroke-width='%.3f'/>\n" % (stroke,fill,strokeWidth))
+        out.append("</svg>\n")
         maxCoord = max(abs(minX),abs(minY),abs(maxX),abs(maxY))
-        out = ("<svg width='%.3f%s' height='%.3f%s' viewBox='%.3f %.3f %.3f %.3f' xmlns='http://www.w3.org/2000/svg'>\n" %
-                    (maxCoord*2,units,maxCoord*2,units,-maxCoord,-maxCoord,2*maxCoord,2*maxCoord)
-                    + out)
-        return out
+        out[0] = ("<svg width='%.3f%s' height='%.3f%s' viewBox='%.3f %.3f %.3f %.3f' xmlns='http://www.w3.org/2000/svg'>\n" %
+                    (maxCoord*2,units,maxCoord*2,units,-maxCoord,-maxCoord,2*maxCoord,2*maxCoord) )
+        return "".join(out)
         
     def getShadedSVG(self, shader, diameter=150, units=""):
         minX = float("inf")
