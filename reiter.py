@@ -10,9 +10,10 @@ random_beta_variation = 0.4
 radius = 200
 steps = 400
 seed = 1
+name = "reiter"
 
 targetSize = 190
-height = 3
+height = 2
 
 random.seed(seed)
 
@@ -23,7 +24,7 @@ def initializer(i):
         return beta+random.uniform(-random_beta_variation/2,random_beta_variation/2)
 
 board = SymmetricHex(radius, initializer=initializer,  
-            scale=1, isFilled=lambda v : v >= 1)
+            isFilled=lambda v : v >= 1)
 scratch = [0 for i in board.indices]
 
 def receptive(i):
@@ -53,6 +54,8 @@ def evolve():
 for i in range(steps):
     evolve()
 
-board.scale = targetSize / (2. * board.getFilledRadius())    
-print(board.getSVG())
-exportmesh.saveSTL("reiter.stl", board.getMesh(height=height))
+exportmesh.saveSTL(name+".stl", board.getMesh(diameter=targetSize,height=height))
+print("Saving %s.svg" % name)
+with open(name+".svg", "w") as f:
+    f.write(board.getSVG(diameter=targetSize))
+

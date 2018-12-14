@@ -22,7 +22,7 @@ def binarySearch(list, value, start=None, end=None):
     raise ValueError()
 
 class SymmetricHex(object):
-    def __init__(self,radius, initializer=0, scale=1., isFilled=bool):
+    def __init__(self, radius, initializer=0, isFilled=bool):
         self.radius = radius
         init = initializer if callable(initializer) else lambda ri: initializer
         self.count = sum(SymmetricHex.rowSize(r) for r in range(radius+1))
@@ -32,15 +32,14 @@ class SymmetricHex(object):
         self.data = [ init(self.toPolar[i]) for i in self.indices ]
         self.neighbors = tuple( tuple(self.polarToIndex(y) for y in self._getNeighbors(self.toPolar[i])) for i in self.indices )
         self.uniqueNeighbors = tuple( tuple(set(n)) for n in self.neighbors )
-        self.scale = scale
         self.isFilled = isFilled
         
     def getFilledRadius(self):
         r = 0
         for i in self.indices:
             if self.isFilled(self.data[i]):
-                r = max(r, self.toPolar[i][0])
-        return (r+0.5)*self.scale
+                r = max(r, abs(self.displayFromIntegerCoordinates(self.toIntegerCoordinates[i])))
+        return r+0.5
         
     def polarToIndex(self,ri):
         return binarySearch(self.toPolar,ri)
@@ -92,7 +91,7 @@ class SymmetricHex(object):
         # 3 x 0
         #   4 5
         x,y = xy
-        return 0.5 * self.scale * complex((x + y / 2.) * math.sqrt(3), y * 1.5)
+        return 0.5 * complex((x + y / 2.) * math.sqrt(3), y * 1.5)
         
     def getTriangleIntegerCoordinates(self):
         for r in range(self.radius+1):
@@ -109,8 +108,12 @@ class SymmetricHex(object):
             p1 = (c[0]+o1[0],c[1]+o1[1])
             p2 = (c[0]+o2[0],c[1]+o2[1])
             yield (p1,p2)
+            
+    def getScale(self, diameter):
+        return diameter / (2.*self.getFilledRadius())
         
-    def getPaths(self):
+    def getPaths(self, diameter=150):
+        scale = self.getScale(diameter)
         segments = set()
         for c in self.getTriangleIntegerCoordinates():
             for s in SymmetricHex.getTriangleSegments(c):
@@ -133,17 +136,17 @@ class SymmetricHex(object):
                         break
             geoPath = []
             for p in path:
-                geoPath.append(self.displayFromIntegerCoordinates(p))
+                geoPath.append(scale*self.displayFromIntegerCoordinates(p))
             yield geoPath               
             
-    def getSVG(self, units="", stroke="black", fill="blue", strokeWidth=0.3):
+    def getSVG(self, units="", stroke="black", fill="blue", strokeWidth=0.3, diameter=150):
         minX = float("inf")
         minY = float("inf")
         maxX = -minX
         maxY = -minY
         
         out = "<path d='"
-        for path in self.getPaths():
+        for path in self.getPaths(diameter=diameter):
             for z in path:
                 minX = min(minX,z.real)
                 minY = min(minY,z.imag)
@@ -160,11 +163,13 @@ class SymmetricHex(object):
                     + out)
         return out
         
-    def getShadedSVG(self, shader, units=""):
+    def getShadedSVG(self, shader, diameter=150, units=""):
         minX = float("inf")
         minY = float("inf")
         maxX = -minX
         maxY = -minY
+        
+        scale = self.getScale(diameter)
         
         out = [None]
         
@@ -176,7 +181,7 @@ class SymmetricHex(object):
                     c = SymmetricHex.polarToIntegerCoordinates((r,i))
                     path = "<path d='"
                     for i,s in enumerate(SymmetricHex.getTriangleSegments(c)):
-                        z = self.displayFromIntegerCoordinates(s[0])
+                        z = scale * self.displayFromIntegerCoordinates(s[0])
                         minX = min(minX,z.real)
                         minY = min(minY,z.imag)
                         maxX = max(maxX,z.real)
@@ -190,13 +195,15 @@ class SymmetricHex(object):
                     (maxCoord*2,units,maxCoord*2,units,-maxCoord,-maxCoord,2*maxCoord,2*maxCoord))
         return "\n".join(out)
         
-    def getMesh(self, height=1):
+    def getMesh(self, diameter=150, height=2):
         mesh = []
+        
+        scale = self.getScale(diameter)
         
         def level(xy,z):
             return (xy.real,xy.imag,z)
 
-        for path in self.getPaths():
+        for path in self.getPaths(diameter=diameter):
             for i in range(len(path)-1):
                 a = path[i]
                 b = path[i+1]
@@ -204,12 +211,12 @@ class SymmetricHex(object):
                 mesh.append( ( level(a,0), level(b,height), level(a,height) ) )
                 
         for c in self.getTriangleIntegerCoordinates():
-            centerXY = self.displayFromIntegerCoordinates(c)
+            centerXY = scale*self.displayFromIntegerCoordinates(c)
             for i in range(6):
                 o1 = SymmetricHex.CORNERS[i]
                 o2 = SymmetricHex.CORNERS[(i+1)%6]
-                xy1 = self.displayFromIntegerCoordinates((c[0]+o1[0],c[1]+o1[1]))
-                xy2 = self.displayFromIntegerCoordinates((c[0]+o2[0],c[1]+o2[1]))
+                xy1 = scale*self.displayFromIntegerCoordinates((c[0]+o1[0],c[1]+o1[1]))
+                xy2 = scale*self.displayFromIntegerCoordinates((c[0]+o2[0],c[1]+o2[1]))
                 mesh.append( ( level(centerXY,height), level(xy1,height), level(xy2,height) ) )
                 mesh.append( ( level(centerXY,0), level(xy2,0), level(xy1,0) ) )             
 
@@ -244,7 +251,6 @@ if __name__ == '__main__':
     import random
     import exportmesh
 
-    h = SymmetricHex(15,initializer=lambda ri: True or ri[0]<=5 and random.randint(0,2)!=0,scale=10)
-    print(h.getSVG())
+    h = SymmetricHex(15,initializer=lambda ri: True or ri[0]<=5 and random.randint(0,2)!=0)
     exportmesh.saveSTL("test.stl", h.getMesh())
     

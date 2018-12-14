@@ -17,7 +17,8 @@ sigma = 1e-5
 steps = 11849
 seed = 1
 targetSize = 190
-height = 3
+height = 2
+name = "morptel"
 
 class HexState(object):
     def __init__(self,a,b,c,d,filledNeighbors):
@@ -156,8 +157,8 @@ def shader(hex):
         return None
         #return interpolateColor(0,2,(0,0,0),(255,255,255),hex.d)
         
-board.scale = targetSize / (2. * board.getFilledRadius())    
-exportmesh.saveSTL("morptel.stl", board.getMesh(height=height))
-#print(board.getShadedSVG(shader))
-#print(board.getSVG())
+exportmesh.saveSTL(name+".stl", board.getMesh(height=height,diameter=targetSize))
+print("Saving %s.svg" % name)
+with open(name+".svg", "w") as f:
+    f.write(board.getSVG(diameter=targetSize))
 
