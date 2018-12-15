@@ -1,7 +1,7 @@
 # algorithm based on http://psoup.math.wisc.edu/papers/h2l.pdf
 
-import exportmesh
-from symmetrichex import SymmetricHex
+#import exportmesh
+import symmetrichex
 import random
 
 #http://mkweb.bcgsc.ca/snowflakes/flake.mhtml?flake=morptel
@@ -14,10 +14,11 @@ alpha = 0.0718350008
 beta = 1.0949972145
 theta = 0.0591767342
 sigma = 1e-5
-steps = 11849
+steps = 118#49
 seed = 1
 targetSize = 190
-height = 2
+maxHeight = 3
+minHeight = 0.5
 name = "morptel"
 
 class HexState(object):
@@ -29,7 +30,7 @@ class HexState(object):
         self.filledNeighbors = filledNeighbors
         
     def __bool__(self):
-        return bool(self.a)
+        return self.a
         
     def clone(self):
         return HexState(self.a,self.b,self.c,self.d,self.filledNeighbors)
@@ -120,16 +121,14 @@ def evolve():
         # v. Noise
         hex.d += random.choice((-1,1))*sigma*hex.d
 
-board = SymmetricHex(radius, initializer=initializer,  
-            scale=1, isFilled=lambda hex:hex.a)
+
+        
+board = symmetrichex.SymmetricHex(radius, initializer=initializer, isFilled=lambda hex:hex.a)
 scratch = [0 for i in board.indices]
 unfilled = tuple(y for y in board.indices if not board[y].a)
             
 for i in range(steps):
     evolve()
-#    if i % 100 == 0:
-#        print(i)
-#        print(board.data[30])
 
 minC = float("inf")
 maxC = float("-inf")
@@ -155,10 +154,10 @@ def shader(hex):
         return interpolateColor(minC,maxC,(220,220,255),(0,0,255),hex.c)
     else:
         return None
-        #return interpolateColor(0,2,(0,0,0),(255,255,255),hex.d)
         
-exportmesh.saveSTL(name+".stl", board.getMesh(height=height,diameter=targetSize))
+exportmesh.saveSTL(name+".stl", board.getMesh(minHeight=minHeight,maxHeight=maxHeight,levels=5,diameter=targetSize,getHexHeight=lambda hex:hex.c))
 print("Saving %s.svg" % name)
 with open(name+".svg", "w") as f:
     f.write(board.getSVG(diameter=targetSize))
+
 

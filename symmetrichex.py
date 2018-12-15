@@ -199,19 +199,23 @@ class SymmetricHex(object):
                     (maxCoord*2,units,maxCoord*2,units,-maxCoord,-maxCoord,2*maxCoord,2*maxCoord))
         return "\n".join(out)
         
-    def getMesh(self, diameter=150, levels=1, height=3, getHexHeight=None):
+    def getMesh(self, diameter=150, levels=1, minHeight=1.5, maxHeight=3, getHexHeight=None):
+        if maxHeight == minHeight:
+            levels = 1
+    
         if getHexHeight is None:
             getHexHeight = lambda hex : 1
-            minHeight = 0
-            maxHeight = 1
+            minHexHeight = 0
+            maxHexHeight = 1
         else:
-            minHeight = float("inf")
-            maxHeight = float("-inf")
+            minHexHeight = float("inf")
+            maxHexHeight = float("-inf")
             
             for i in self.indices:
-                h = getHexHeight(self.data[i])
-                minHeight = min(minHeight,h)
-                maxHeight = max(maxHeight,h)
+                if self.isFilled(self.data[i]):
+                    h = getHexHeight(self.data[i])
+                    minHexHeight = min(minHexHeight,h)
+                    maxHexHeight = max(maxHexHeight,h)
                 
         def getLevel(hex):
             if not self.isFilled(hex):
@@ -219,7 +223,7 @@ class SymmetricHex(object):
             
             hexHeight = getHexHeight(hex)
             
-            l = math.floor((hexHeight-minHeight)/(maxHeight-minHeight)*levels - 1)
+            l = math.floor((hexHeight-minHexHeight)/(maxHexHeight-minHexHeight)*levels - 1)
             if l < 0:
                 return 0
             elif l >= levels:
@@ -234,7 +238,10 @@ class SymmetricHex(object):
         prevOutHeight = 0
         
         for level in range(levels):
-            outHeight = (level+1.)*height/levels
+            if levels == 1:
+                outHeight = maxHeight
+            else:
+                outHeight = minHeight + level*(maxHeight-minHeight)/(levels-1)
 
             def atZ(xy,z):
                 return (xy.real,xy.imag,z)

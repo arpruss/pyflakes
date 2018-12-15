@@ -13,7 +13,8 @@ seed = 1
 name = "reiter"
 
 targetSize = 190
-height = 2
+maxHeight = 2
+minHeight = 2
 
 random.seed(seed)
 
@@ -54,7 +55,7 @@ def evolve():
 for i in range(steps):
     evolve()
 
-exportmesh.saveSTL(name+".stl", board.getMesh(diameter=targetSize,height=height,levels=5,getHexHeight=lambda hex:hex))
+exportmesh.saveSTL(name+".stl", board.getMesh(diameter=targetSize,minHeight=minHeight,maxHeight=maxHeight,levels=5,getHexHeight=lambda hex:hex))
 print("Saving %s.svg" % name)
 with open(name+".svg", "w") as f:
     f.write(board.getSVG(diameter=targetSize))
