@@ -18,7 +18,33 @@ function corsCircumvent(url) {
 }
 
 function processRunfile(response) {
-    window.document.getElementById("output").innerHTML = "Found!"
+    var lines = response.split(/\r?\n/)
+    
+    var message = "Found!<br/><br/>"
+    
+    var size = 0
+    
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i].split(" ")
+        if (line[0] == "run" && line[1]=="j") {
+            message += "steps: "+line[2]+"<br/>"
+        }
+        else if (line[0] == "param") {
+            var params = { "a": "alpha", "b": "beta", "g": "gamma", "k": "kappa", "m": "mu", "r": "rho", "s": "sigma", "n": "resolution" }
+            if (params[line[1]]) {
+                message += params[line[1]]+": "+line[2]+"<br/>"
+                if (line[1] == "n") {
+                    size = parseInt(line[2])
+                }
+            }
+        }
+    }
+
+    if (! size) 
+        window.document.getElementById("output").innerHTML = "Badly formed data."
+    else
+        window.document.getElementById("output").innerHTML = message
+    
 }
 
 function process(document) {
@@ -50,7 +76,7 @@ function load() {
     xhr.onload = function() {
         process(xhr.responseXML)
     }
-    url = "http://mkweb.bcgsc.ca/snowflakes/flake.mhtml?flake="+document.getElementById("name").toLowerCase
+    url = "http://mkweb.bcgsc.ca/snowflakes/flake.mhtml?flake="+window.document.getElementById("name").value.toLowerCase()
     xhr.open("GET", corsCircumvent(url))
     xhr.responseType = "document"
     xhr.send()
