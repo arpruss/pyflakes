@@ -298,10 +298,10 @@ class SymmetricHex(object):
     def perimeter(r):
         return 1 if r==0 else 6*r
 
-if __name__ == '__main__':
-    import random
-    import exportmesh
-
-    h = SymmetricHex(15,initializer=lambda ri: True or ri[0]<=5 and random.randint(0,2)!=0)
-    exportmesh.saveSTL("test.stl", h.getMesh())
+#if __name__ == '__main__':
+#    import random
+#    import exportmesh
+#
+#    h = SymmetricHex(15,initializer=lambda ri: True or ri[0]<=5 and random.randint(0,2)!=0)
+#    exportmesh.saveSTL("test.stl", h.getMesh())
     
