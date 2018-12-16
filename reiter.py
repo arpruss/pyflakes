@@ -41,14 +41,14 @@ def reiter(alpha = 1.6, beta = 0.7, gamma = 0.003, gamma_variation_amplitude_rat
         for i in board.indices:
             board[i] = scratch[i]
 
-    progressSteps = steps // 10
+    progressSteps = steps // 20
     if steps == 0:
         progress = False
                 
     for i in range(steps):
         evolve()
         if progress and i % progressSteps == 0:
-            print(("[%.0f%%]" % (100.*i/steps)), file=sys.stderr, end=" ")            
+            print(("[%.0f%%]" % (100.*i/steps)), file=sys.stderr, end="")            
 
     print("[100%]", file=sys.stderr)            
             

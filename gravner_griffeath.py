@@ -126,14 +126,14 @@ def gravner_griffeath(radius = 400,
     scratch = [0 for i in board.indices]
     unfilled = [y for y in board.indices if not board[y].a]
                 
-    progressSteps = steps // 10
+    progressSteps = steps // 20
     if steps == 0:
         progress = False
                 
     for i in range(steps):
         evolve()
         if progress and i % progressSteps == 0:
-            print(("[%.0f%%]" % (100.*i/steps)), file=sys.stderr, end=" ")            
+            print(("[%.0f%%]" % (100.*i/steps)), file=sys.stderr, end="")            
         
     print("[100%]", file=sys.stderr)            
     return board
