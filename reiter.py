@@ -66,8 +66,8 @@ if __name__ == '__main__':
     name = "reiter"
 
     targetSize = 190
-    maxHeight = 2
-    minHeight = 2
+    maxHeight = 2.5
+    minHeight = 1.25
 
     random.seed(seed)
     

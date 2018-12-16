@@ -93,7 +93,7 @@ class SymmetricHex(object):
         x,y = xy
         return 0.5 * complex((x + y / 2.) * math.sqrt(3), y * 1.5)
         
-    def getTriangleIntegerCoordinates(self, filter=None):
+    def getHexIntegerCoordinates(self, filter=None):
         if filter is None:
             filter = self.isFilled
         for r in range(self.radius+1):
@@ -103,7 +103,7 @@ class SymmetricHex(object):
                     yield SymmetricHex.polarToIntegerCoordinates((r,i))
                     
     @staticmethod
-    def getTriangleSegments(c):
+    def getHexSegments(c):
         for i in range(6):
             o1 = SymmetricHex.CORNERS[i]
             o2 = SymmetricHex.CORNERS[(i+1)%6]
@@ -120,25 +120,33 @@ class SymmetricHex(object):
         
         scale = self.getScale(diameter)
         segments = set()
-        for c in self.getTriangleIntegerCoordinates(filter=filter):
-            for s in SymmetricHex.getTriangleSegments(c):
-                if (s[1],s[0]) in segments:
-                    segments.remove((s[1],s[0]))
+        for c in self.getHexIntegerCoordinates(filter=filter):
+            for s0,s1 in SymmetricHex.getHexSegments(c):
+                if (s1,s0) in segments:
+                    # if a path goes in both directions, it's between two included hexes and isn't needed
+                    segments.remove((s1,s0))
                 else:
-                    segments.add(s)   
-        while segments:
-            s = next(iter(segments))
-            segments.remove(s)
-            path = [s[0],s[1]]
-            found = True
-            while found:
-                found = False
-                for s in segments:
-                    if s[0] == path[-1]:
-                        path.append(s[1])
-                        segments.remove(s)
-                        found = True
-                        break
+                    segments.add((s0,s1))
+        # at this point, segments should consist in a collection of circular non-intersecting paths
+        segmentDict = {}
+        for s in segments:
+            segmentDict[s[0]] = s[1]
+        while segmentDict:
+            s0 = next(iter(segmentDict))
+            s1 = segmentDict[s0]
+            path = [s0,s1]
+            del segmentDict[s0]
+            s0 = s1
+            try:
+                while True:
+                    s1 = segmentDict[s0]
+                    del segmentDict[s0]
+                    path.append(s1)
+                    s0 = s1
+                    if s1 == path[0]:
+                        raise StopIteration
+            except StopIteration:
+                pass
             geoPath = []
             for p in path:
                 geoPath.append(scale*self.displayFromIntegerCoordinates(p))
@@ -184,7 +192,7 @@ class SymmetricHex(object):
                 if shade is not None:
                     c = SymmetricHex.polarToIntegerCoordinates((r,i))
                     path = "<path d='"
-                    for i,s in enumerate(SymmetricHex.getTriangleSegments(c)):
+                    for i,s in enumerate(SymmetricHex.getHexSegments(c)):
                         z = scale * self.displayFromIntegerCoordinates(s[0])
                         minX = min(minX,z.real)
                         minY = min(minY,z.imag)
@@ -259,7 +267,7 @@ class SymmetricHex(object):
             if not found:
                 break
                     
-            for c in self.getTriangleIntegerCoordinates(filter = lambda hex : getLevel(hex) == level):
+            for c in self.getHexIntegerCoordinates(filter = lambda hex : getLevel(hex) == level):
                 centerXY = scale*self.displayFromIntegerCoordinates(c)
                 for i in range(6):
                     o1 = SymmetricHex.CORNERS[i]
@@ -298,10 +306,12 @@ class SymmetricHex(object):
     def perimeter(r):
         return 1 if r==0 else 6*r
 
-#if __name__ == '__main__':
-#    import random
-#    import exportmesh
-#
-#    h = SymmetricHex(15,initializer=lambda ri: True or ri[0]<=5 and random.randint(0,2)!=0)
-#    exportmesh.saveSTL("test.stl", h.getMesh())
+if __name__ == '__main__':
+    import random
+    import exportmesh
+    
+    random.seed(1)
+
+    h = SymmetricHex(15,initializer=lambda ri: ri[0]<3) # random.randint(0,15)==0)
+    exportmesh.saveSTL("test.stl", h.getMesh())
     
