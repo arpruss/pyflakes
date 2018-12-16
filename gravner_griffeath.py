@@ -36,7 +36,6 @@ def gravner_griffeath(radius = 400,
         theta = 0.0591767342,
         sigma = 0, # 1e-5
         steps = 11849,
-        seed = 1,
         progress = True):        
 
     def initializer(i):
@@ -134,8 +133,9 @@ def gravner_griffeath(radius = 400,
     for i in range(steps):
         evolve()
         if progress and i % progressSteps == 0:
-            print(("%.1f%%" % (100.*i/steps)), file=sys.stderr, end=" ")            
+            print(("[%.0f%%]" % (100.*i/steps)), file=sys.stderr, end=" ")            
         
+    print("[100%]", file=sys.stderr)            
     return board
     
 if __name__ == '__main__':
@@ -151,6 +151,8 @@ if __name__ == '__main__':
     steps = 11849
     seed = 1
 
+    random.seed(seed)
+    
     board = gravner_griffeath(radius=radius, rho=rho, kappa=kappa, mu=mu, gamma=gamma, alpha=alpha, beta=beta, theta=theta, sigma=sigma,
                 steps=steps, seed=seed)
 
