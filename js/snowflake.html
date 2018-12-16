@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head><title>Snowflake to STL</title></head>
+</head>
+<body>
+Snowflake name: <input id="name" type="text" value="morptel"/> (find it <a href="http://mkweb.bcgsc.ca/snowflakes">here</a>)<br/>
+Diameter: <input id="diameter" type="number" value="190" min="0.1" step="5" max="100000"/>mm <br/>
+Minimum thickness: <input id="thinnest" type="number" step="0.1" value="1.5" min="0.1" max="100000"/>mm<br/> 
+Maximum thickness: <input id="thickest" type="number" step="0.1" value="4" min="0.1" max="100000"/>mm<br/> 
+Number of levels: <input id="levels" type="number" step="1" min="1" max="1000" value="1"/><br/>
+<button id="Go" onClick="load()">Generate!</button><br/>
+<div id="output"></div>
+</body>
+
+<script>
+function corsCircumvent(url) {
+    return "http://api.allorigins.ml/get?method=raw&url="+encodeURIComponent(url)+"&callback=?"
+}
+
+function processRunfile(response) {
+    window.document.getElementById("output").innerHTML = "Found!"
+}
+
+function process(document) {
+    var found = false;
+    links = document.getElementsByTagName('a')
+    for (var i=0;i<links.length;i++) {
+        matches = links[i].href.match("/flakes/snowflake-.*\\.txt")
+        if (matches) {            
+            found = true
+            var xhr = new XMLHttpRequest()
+            xhr.onload = function() {
+                processRunfile(xhr.response)
+            }
+            url = "http://mkweb.bcgsc.ca/snowflakes"+matches[0]
+            xhr.open("GET", corsCircumvent(url))
+            xhr.responseType = "text"
+            xhr.send()
+            window.document.getElementById("output").innerHTML = "Loading..."
+            break
+        }
+    }
+    if (!found) {
+        alert("Snowflake not found")
+    }
+}
+
+function load() {
+    var xhr = new XMLHttpRequest()
+    xhr.onload = function() {
+        process(xhr.responseXML)
+    }
+    url = "http://mkweb.bcgsc.ca/snowflakes/flake.mhtml?flake="+document.getElementById("name").toLowerCase
+    xhr.open("GET", corsCircumvent(url))
+    xhr.responseType = "document"
+    xhr.send()
+    document.getElementById("output").innerHTML = "Searching..."
+}
+</script>
+
+
+</html>

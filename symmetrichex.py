@@ -150,7 +150,7 @@ class SymmetricHex(object):
             geoPath = []
             for p in path:
                 geoPath.append(scale*self.displayFromIntegerCoordinates(p))
-            yield geoPath               
+            yield tuple(geoPath)
             
     def getSVG(self, units="", stroke="black", fill="blue", strokeWidth=0.3, diameter=150):
         minX = float("inf")
@@ -207,6 +207,18 @@ class SymmetricHex(object):
                     (maxCoord*2,units,maxCoord*2,units,-maxCoord,-maxCoord,2*maxCoord,2*maxCoord))
         return "\n".join(out)
         
+    def getMinMax(self, getHexHeight):
+        minHexHeight = float("inf")
+        maxHexHeight = float("-inf")
+        
+        for i in self.indices:
+            if self.isFilled(self.data[i]):
+                h = getHexHeight(self.data[i])
+                minHexHeight = min(minHexHeight,h)
+                maxHexHeight = max(maxHexHeight,h)
+                
+        return minHexHeight,maxHexHeight
+        
     def getMesh(self, diameter=150, levels=1, minHeight=1.5, maxHeight=3, getHexHeight=None):
         if maxHeight == minHeight:
             levels = 1
@@ -215,15 +227,9 @@ class SymmetricHex(object):
             getHexHeight = lambda hex : 1
             minHexHeight = 0
             maxHexHeight = 1
+            levels = 1
         else:
-            minHexHeight = float("inf")
-            maxHexHeight = float("-inf")
-            
-            for i in self.indices:
-                if self.isFilled(self.data[i]):
-                    h = getHexHeight(self.data[i])
-                    minHexHeight = min(minHexHeight,h)
-                    maxHexHeight = max(maxHexHeight,h)
+            minHexHeight,maxHexHeight = self.getMinMax(getHexHeight)
                 
         def getLevel(hex):
             if not self.isFilled(hex):
