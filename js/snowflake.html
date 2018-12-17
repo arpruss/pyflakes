@@ -33,15 +33,16 @@ function displayY(x,y,size) {
     return (y-2*size) * 1.5
 }
 
-function getScale(size) {
+function getScale(raster, size) {
     var maxRadiusSq = 0;
     for (var x = 0 ; x < size ; x++)
         for (var y = 0; y < size ; y++)
-            maxRadiusSq = max(maxRadiusSq,Math.pow(displayX(x,y,size),2)+Math.pow(displayY(x,y,size),2))
+            if (raster[x][y]>0)
+                maxRadiusSq = max(maxRadiusSq,Math.pow(displayX(x,y,size),2)+Math.pow(displayY(x,y,size),2))
     return diameter/(2*(0.5+Math.sqrt(maxRadiusSq)))
 }
 
-function makeMesh(raster, size, prevHeight, height, thickness) {
+function makeMesh(raster, size, prevHeight, height, prevThickness, thickness) {
     var maxCoord = 2*size+2
     
     function encodePoint(p) {
@@ -52,33 +53,54 @@ function makeMesh(raster, size, prevHeight, height, thickness) {
         return [c%maxCoord, Math.floor(c/maxCoord)]
     }
     
+    var scale = getScale(raster, size)
+
+    function xyToDisplay(xy) {
+        return [scale*displayX(xy[0],xy[1],size),scale*displayY(xy[0],xy[1],size)]
+    }
+
+    function xyEncodedToDisplay(xye) {
+        return xyToDisplay(decodePoint(xye))
+    }
+    
+    function raiseTo(a,h) {
+        return [a[0],a[1],h]
+    }
+    
+    function addTriangleAt(h, a, b, c) {
+        mesh.push(raiseTo(a,h),raiseTo(b,h),raiseTo(c,h)) 
+    }
+    
+    function addSideMesh(a, b) {
+        mesh.push([raiseTo(a,prevThickness), raiseTo(b,prevThickness), raiseTo(b,thickness)])
+        mesh.push([raiseTo(a,prevThickness), raiseTo(b,thickness), raiseTo(a,thickness)])
+    }
+
     var segments = []
     
     for (var x = 0 ; x < size; x++)
         for (var y = 0 ; y < size ; y++) {
             if (prevHeight < raster[x][y] && raster[x][y] <= height) {
+                var center = xyToDisplay([2*x,2*y])
                 for (var i=0; i<6; i++) {
                     c0 = CORNERS[i]
                     c1 = CORNERS[(i+1)%6]
-                    s0 = encodePoint([2*x+c0[0],2*y+c0[1]])
-                    s1 = encodePoint([2*x+c1[0],2*y+c1[1]])
+                    p0 = [2*x+c0[0],2*y+c0[1]]
+                    p1 = [2*x+c1[0],2*y+c1[1]]
+                    s0 = encodePoint(p0)
+                    s1 = encodePoint()
                     if (s1 in segments && segments[s1] == s0) {
                         delete segments[s1]
                     }
                     else {
                         segments[s0] = s1
                     }
+                    addTriangleAt(0, center, xyToDisplay(p1), xyToDisplay(p0)])
+                    addTriangleAt(thickness, center, xyToDisplay(p0), xyToDisplay(p1)])
                 }
             }
         }
         
-    var paths = []
-    
-    function displayXY(xye) {
-        xy = decodePoint(xye)
-        return [displayX(xy[0],xy[1],size),displayY(xy[0],xy[1],size)]
-    }
-
     while(true) {
         var first = null;
         for (var key in segments) {
@@ -90,22 +112,26 @@ function makeMesh(raster, size, prevHeight, height, thickness) {
         
         if (first == null)
             break;
-        
+            
         var p = segments[first]
+        var p0 = p
+        addSideMesh(xyEncodedToDisplay(parseInt(first)), xyEncodedToDisplay(p))
         segments[first] = null
-        var path = [displayXY(parseInt(keys[0])), displayXY(p)]
+        
         var n = 2
         
         while(true) {
-            p = segments[path[n-1]]
-            segments[path[n-1]] = null
-            if (p == keys[0]) {
+            var p1 = segments[p]
+            segments[p] = null
+            if (p == p0) {
                 break
             }
-            path.push(displayXY(p))
-            n++
+            
+            addSideMesh(xyEncodedToDisplay(p0), xyEncodedToDisplay(p1))
         }
     }
+    
+    return mesh
 }
 
 function processRaster(raster, size) {
@@ -123,6 +149,7 @@ function processRaster(raster, size) {
 
     var mesh = []
     var prevHeight = 0
+    var prevThickness = 0
     
     for (var level=0; level<levels; level++) {
         var thickness
@@ -133,8 +160,9 @@ function processRaster(raster, size) {
             thickness = minThickness+level*(maxThickness-minThickness)/(levels-1)
         }
         var height = minHeight+level*(maxHeight-minHeight)/levels
-        mesh.concat(makeMesh(raster, size, prevHeight, height, thickness))
+        mesh.concat(makeMesh(raster, size, prevHeight, height, prevThickness, thickness))
         prevHeight = height
+        prevThickness = thickness
     }
     
     emitMesh(mesh)
