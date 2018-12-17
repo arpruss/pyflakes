@@ -10,6 +10,7 @@ Maximum thickness: <input id="thickest" type="number" step="0.1" value="4" min="
 Number of levels: <input id="levels" type="number" step="1" min="1" max="1000" value="1"/><br/>
 <button id="Go" onClick="load()">Generate!</button><br/>
 <div id="output"></div>
+<div id="progress"></div>
 </body>
 
 <script>
@@ -17,12 +18,74 @@ function corsCircumvent(url) {
     return "http://api.allorigins.ml/get?method=raw&url="+encodeURIComponent(url)+"&callback=?"
 }
 
+var diameter
+var minThickness
+var maxThickness
+var levels
+
+var CORNERS = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]]
+
+function makeMesh(raster, size, prevHeight, height, thickness) {
+    var segments = []
+    
+    for (var x = 0 ; x < size; x++)
+        for (var y = 0 ; y < size ; y++) {
+            if (prevHeight < raster[x][y] && raster[x][y] <= height) {
+                for (var i=0; i<6; i++) {
+                    c0 = CORNERS[i]
+                    c1 = CORNERS[(i+1)%6]
+                    s0 = [2*x+c0[0],2*y+c0[1]]
+                    s1 = [2*x+c1[0],2*y+c1[1]]
+                    if (s1 in segments && segments[s1] == s0) {
+                        delete segments[s1]
+                    }
+                    else {
+                        segments[s0] = s1
+                    }
+                }
+            }
+        }
+        
+}
+
+function processRaster(raster, size) {
+    var minHeight = Number.POSITIVE_INFINITY
+    var maxHeight = Number.NEGATIVE_INFINITY
+    
+    for (var x = 0 ; x < size ; x++) {
+        for (var y = 0; y<size ; y++) {
+            if (raster[x][y] > 0) {
+                minHeight = min(minHeight, raster[x][y])
+                maxHeight = max(minHeight, raster[x][y])
+            }
+        }
+    }
+
+    var mesh = []
+    var prevHeight = 0
+    
+    for (var level=0; level<levels; level++) {
+        var thickness
+        if (levels == 1) {
+            thickness = maxThickness
+        }
+        else {
+            thickness = minThickness+level*(maxThickness-minThickness)/(levels-1)
+        }
+        var height = minHeight+level*(maxHeight-minHeight)/levels
+        mesh.concat(makeMesh(raster, size, prevHeight, height, thickness))
+        prevHeight = height
+    }
+    
+    emitMesh(mesh)
+}
+
 function processRunfile(response) {
     var lines = response.split(/\r?\n/)
     
     var message = "Found!<br/><br/>"
-    
     var size = 0
+    var raster
     
     for (var i = 0; i < lines.length; i++) {
         var line = lines[i].split(" ")
@@ -35,16 +98,32 @@ function processRunfile(response) {
                 message += params[line[1]]+": "+line[2]+"<br/>"
                 if (line[1] == "n") {
                     size = parseInt(line[2])
+                    raster = []
+                    for (var x = 0 ; x < size ; x++) {
+                        raster[x] = []
+                        for (var y = 0 ; y < size ; y++) 
+                            raster[x][y] = 0
+                    }
                 }
+            }
+        }
+        else if (line[0]=='y') {
+            y = parseInt(line[1])
+            for (var x = 0 ; x < size ; x++) {
+                raster[x][y] = parseInt(line[2+x])
             }
         }
     }
 
-    if (! size) 
+    if (! size) {
         window.document.getElementById("output").innerHTML = "Badly formed data."
-    else
+        return
+    }
+    else {
         window.document.getElementById("output").innerHTML = message
+    }
     
+    mesh = processRaster(raster, size)
 }
 
 function process(document) {
@@ -62,7 +141,7 @@ function process(document) {
             xhr.open("GET", corsCircumvent(url))
             xhr.responseType = "text"
             xhr.send()
-            window.document.getElementById("output").innerHTML = "Loading..."
+            window.document.getElementById("progress").innerHTML = "Loading..."
             break
         }
     }
@@ -72,6 +151,13 @@ function process(document) {
 }
 
 function load() {
+    diameter = parseFloat(window.document.getElementById("diamater").value)
+    minThickness = parseFloat(window.document.getElementById("thinnest").value)
+    maxThickness = parseFloat(window.document.getElementById("thickest").value)
+    levels = parseInt(window.document.getElementById("levels").value)
+    if (levels < 1 || minThickness >= maxThickness) 
+        levels = 1
+    
     var xhr = new XMLHttpRequest()
     xhr.onload = function() {
         process(xhr.responseXML)
@@ -80,8 +166,11 @@ function load() {
     xhr.open("GET", corsCircumvent(url))
     xhr.responseType = "document"
     xhr.send()
-    document.getElementById("output").innerHTML = "Searching..."
+    document.getElementById("progress").innerHTML = "Searching..."
+    document.getElementById("output").innerHTML = ""
 }
+
+// TODO: fix multiple Generate presses
 </script>
 
 
