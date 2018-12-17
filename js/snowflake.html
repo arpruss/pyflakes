@@ -25,7 +25,33 @@ var levels
 
 var CORNERS = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]]
 
+function displayX(x,y,size) {
+    return ((x-2*size) + (y-2*size) / 2.) * Math.sqrt(3)
+}
+
+function displayY(x,y,size) {
+    return (y-2*size) * 1.5
+}
+
+function getScale(size) {
+    var maxRadiusSq = 0;
+    for (var x = 0 ; x < size ; x++)
+        for (var y = 0; y < size ; y++)
+            maxRadiusSq = max(maxRadiusSq,Math.pow(displayX(x,y,size),2)+Math.pow(displayY(x,y,size),2))
+    return diameter/(2*(0.5+Math.sqrt(maxRadiusSq)))
+}
+
 function makeMesh(raster, size, prevHeight, height, thickness) {
+    var maxCoord = 2*size+2
+    
+    function encodePoint(p) {
+        return p[0] + maxCoord*p[1]
+    }
+    
+    function decodePoint(c) {
+        return [c%maxCoord, Math.floor(c/maxCoord)]
+    }
+    
     var segments = []
     
     for (var x = 0 ; x < size; x++)
@@ -34,8 +60,8 @@ function makeMesh(raster, size, prevHeight, height, thickness) {
                 for (var i=0; i<6; i++) {
                     c0 = CORNERS[i]
                     c1 = CORNERS[(i+1)%6]
-                    s0 = [2*x+c0[0],2*y+c0[1]]
-                    s1 = [2*x+c1[0],2*y+c1[1]]
+                    s0 = encodePoint([2*x+c0[0],2*y+c0[1]])
+                    s1 = encodePoint([2*x+c1[0],2*y+c1[1]])
                     if (s1 in segments && segments[s1] == s0) {
                         delete segments[s1]
                     }
@@ -46,6 +72,40 @@ function makeMesh(raster, size, prevHeight, height, thickness) {
             }
         }
         
+    var paths = []
+    
+    function displayXY(xye) {
+        xy = decodePoint(xye)
+        return [displayX(xy[0],xy[1],size),displayY(xy[0],xy[1],size)]
+    }
+
+    while(true) {
+        var first = null;
+        for (var key in segments) {
+            if (segments[key] != null) {
+                first = key;
+                break;
+            }
+        }
+        
+        if (first == null)
+            break;
+        
+        var p = segments[first]
+        segments[first] = null
+        var path = [displayXY(parseInt(keys[0])), displayXY(p)]
+        var n = 2
+        
+        while(true) {
+            p = segments[path[n-1]]
+            segments[path[n-1]] = null
+            if (p == keys[0]) {
+                break
+            }
+            path.push(displayXY(p))
+            n++
+        }
+    }
 }
 
 function processRaster(raster, size) {
