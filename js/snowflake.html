@@ -28,16 +28,16 @@ var minThickness
 var maxThickness
 var levels
 var name
-var globalMesh
 
-//var CORNERS = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]] 
-//var CORNERS = [[0,-1], [1,0], [1,1], [0,1], [-1,0], [-1,-1]];
-var CORNERS = [[1,0], [0,1], [-1,1], [-1,0], [0,-1], [1,-1] ];
+var CORNERS = [[1,1], [-1,2], [-2,1], [-1,-1], [1,-2], [2,-1]];
 function displayX(x,y,size) {
+    x -= size
+    y -= size
     return (x+0.5*y)*Math.sqrt(3) // ((x-2*size) + (y-2*size) / 2.) * Math.sqrt(3)
 }
 
 function displayY(x,y,size) {
+    y -= size
     return y*1.5 // (y-2*size) * 1.5
 }
 
@@ -63,22 +63,36 @@ function addLevel(mesh, raster, size, prevHeight, height, prevThickness, thickne
         return [a[0],a[1],h]
     }
     
+    function addTriangle(a,b,c) {
+        var tri = new Float32Array(9)
+        
+        for (var i=0 ; i < 3 ; i++) {
+            tri[i] = a[i]
+        }
+        for (var i=0 ; i < 3 ; i++) {
+            tri[3+i] = b[i]
+        }
+        for (var i=0 ; i < 3 ; i++) {
+            tri[6+i] = c[i]
+        }
+
+        mesh.push(tri)
+    }
+    
     function addTriangleAt(h, a, b, c) {
-        mesh.push([raiseTo(a,h),raiseTo(b,h),raiseTo(c,h)]) 
+        addTriangle(raiseTo(a,h),raiseTo(b,h),raiseTo(c,h)) 
     }
     
     function addSideMesh(a, b) {
-        mesh.push([raiseTo(a,prevThickness), raiseTo(b,prevThickness), raiseTo(b,thickness)])
-        mesh.push([raiseTo(a,prevThickness), raiseTo(b,thickness), raiseTo(a,thickness)])
+        addTriangle(raiseTo(a,prevThickness), raiseTo(b,prevThickness), raiseTo(b,thickness))
+        addTriangle(raiseTo(a,prevThickness), raiseTo(b,thickness), raiseTo(a,thickness))
     }
 
     var segmentSet = new Set()
     
     for (var x = 0 ; x < size; x++)
         for (var y = 0 ; y < size ; y++) {
-            l = Math.sqrt(Math.pow(displayX(2*(x-size/2),2*(y-size/2),1),2)+ Math.pow(displayY(2*(x-size/2),2*(y-size/2),1),2))
-            if (l <= 4) {// {prevHeight < raster[x][y] && raster[x][y] <= height) {
-                console.log(x-size/2,y-size/2)
+            if (prevHeight < raster[x][y]) {
                 var center = xyToDisplay([2*x,2*y])
                 for (var i=0; i<6; i++) {
                     var c0 = CORNERS[i]
@@ -95,8 +109,10 @@ function addLevel(mesh, raster, size, prevHeight, height, prevThickness, thickne
                         segmentSet.add(p0[0]+","+p0[1]+","+p1[0]+","+p1[1])
                     }
                     
-                    addTriangleAt(0, center, xyToDisplay(p1), xyToDisplay(p0))
-                    addTriangleAt(thickness, center, xyToDisplay(p0), xyToDisplay(p1))
+                    if (raster[x][y] <= height) {
+                        addTriangleAt(0, center, xyToDisplay(p1), xyToDisplay(p0))
+                        addTriangleAt(thickness, center, xyToDisplay(p0), xyToDisplay(p1))
+                    }
                 }
             }
         }
@@ -117,14 +133,14 @@ function processRaster(raster, size) {
     var minHeight = Number.POSITIVE_INFINITY
     var maxHeight = Number.NEGATIVE_INFINITY
     
-/*    for (var x = 0 ; x < size ; x++) {
+    for (var x = 0 ; x < size ; x++) {
         for (var y = 0; y<size ; y++) {
             if (raster[x][y] > 0) {
                 minHeight = Math.min(minHeight, raster[x][y])
                 maxHeight = Math.max(maxHeight, raster[x][y])
             }
         }
-    } */
+    } 
     
     minHeight = 1
     maxHeight = 100
@@ -152,8 +168,6 @@ function processRaster(raster, size) {
     }
     console.log("meshing done",mesh.length)
     
-    globalMesh = mesh
-
     window.document.getElementById("progress").innerHTML = "Preparing download..."
     
     downloadBlob(name+".stl", new Blob([makeMeshByteArray(mesh)], {type: "application/octet-stream"}));
@@ -196,6 +210,8 @@ function processRunfile(response) {
             }
         }
     }
+    
+    raster[Math.floor(size/2)][Math.floor(size/2)] = 255
 
     console.log("runfile processed")
 
@@ -209,7 +225,7 @@ function processRunfile(response) {
     
     console.log("processing raster")
     
-    setTimeout( function() { processRaster(raster, size) }, 1 )
+    setTimeout( function() { processRaster(raster, size) }, 0 )
 }
 
 function process(document) {
@@ -246,7 +262,7 @@ function load() {
     if (levels < 1 || minThickness >= maxThickness) 
         levels = 1
         
-/*    var xhr = new XMLHttpRequest()
+    var xhr = new XMLHttpRequest()
     xhr.onload = function() {
         process(xhr.responseXML)
     }
@@ -255,15 +271,17 @@ function load() {
     xhr.responseType = "document"
     xhr.send()
     document.getElementById("progress").innerHTML = "Searching..."
-    document.getElementById("output").innerHTML = "" */
-    processRaster([[]], 800)
+    document.getElementById("output").innerHTML = "" 
+ //   processRaster([[]], 800)
 }
 
+/*
 function setVector(view, position, vector) {
     view.setFloat32(position, vector[0], true);
     view.setFloat32(position+4, vector[1], true);
     view.setFloat32(position+8, vector[2], true);
 }
+*/
 
 function makeMeshByteArray(triangles) {
     totalTriangles = triangles.length
@@ -273,12 +291,17 @@ function makeMeshByteArray(triangles) {
     view.setUint32(80, totalTriangles, true);
     var offset = 84;
     for (var i=0; i<totalTriangles; i++) {
-        setVector(view, offset, [0,0,0]); // normal (TODO)
-        setVector(view, offset+12, triangles[i][0]); // v1
-        setVector(view, offset+12*2, triangles[i][1]); // v2
-        setVector(view, offset+12*3, triangles[i][2]); // v3
-        offset += TRIANGLE_SIZE;
+        for (var j = 0; j<3 ; j++) {
+            view.setFloat32(offset, 0, true)
+            offset += 4
+        }
+        for (var j = 0; j<9 ; j++) {
+            view.setFloat32(offset, triangles[i][j], true)
+            offset += 4
+        }
+        offset += 2
     }
+    console.log (offset,totalTriangles,84 + totalTriangles * TRIANGLE_SIZE)
     return view.buffer;
 }
 
