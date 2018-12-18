@@ -50,11 +50,12 @@ function getScale(raster, size) {
     return diameter/(2*(0.5+Math.sqrt(maxRadiusSq)))
 }
 
-function addLevel(mesh, raster, size, prevHeight, height, prevThickness, thickness) {
+function addLevelToMesh(mesh, segmentSet, raster, size, scale, prevHeight, height, prevThickness, thickness, startX, endX) {
     var maxCoord = 100000
     
-    var scale = getScale(raster, size)
-
+    if (startX == 0)
+        segmentSet.clear()
+    
     function xyToDisplay(xy) {
         return [scale*displayX(xy[0],xy[1],size),scale*displayY(xy[0],xy[1],size)]
     }
@@ -88,9 +89,7 @@ function addLevel(mesh, raster, size, prevHeight, height, prevThickness, thickne
         addTriangle(raiseTo(a,prevThickness), raiseTo(b,thickness), raiseTo(a,thickness))
     }
 
-    var segmentSet = new Set()
-    
-    for (var x = 0 ; x < size; x++)
+    for (var x = startX ; x < endX; x++)
         for (var y = 0 ; y < size ; y++) {
             if (prevHeight < raster[x][y]) {
                 var center = xyToDisplay([2*x,2*y])
@@ -117,8 +116,10 @@ function addLevel(mesh, raster, size, prevHeight, height, prevThickness, thickne
             }
         }
         
+    if (endX < size)
+        return
+        
     console.log("Meshing edges")
-    segments = []
      
     segmentSet.forEach(function(seg) {
         var points = seg.split(",")
@@ -129,6 +130,8 @@ function addLevel(mesh, raster, size, prevHeight, height, prevThickness, thickne
 
 function processRaster(raster, size) {
     window.document.getElementById("progress").innerHTML = "Meshing..."
+
+    var scale = getScale(raster, size)
 
     var minHeight = Number.POSITIVE_INFINITY
     var maxHeight = Number.NEGATIVE_INFINITY
@@ -144,12 +147,11 @@ function processRaster(raster, size) {
     
     minHeight = 1
     maxHeight = 100
+    
+    var segmentSet = new Set()
 
     var mesh = []
-    var prevHeight = 0
-    var prevThickness = 0
-    
-    for (var level=0; level<levels; level++) {
+    function addLevel(level,startX,endX) {
         var thickness
         if (levels == 1) {
             thickness = maxThickness
@@ -158,18 +160,52 @@ function processRaster(raster, size) {
             thickness = minThickness+level*(maxThickness-minThickness)/(levels-1)
         }
         var height = minHeight+(level+1)*(maxHeight-minHeight)/levels
+        var prevHeight
+        var  prevThickness
+        if (level == 0) {
+            prevHeight = 0
+            prevThickness = 0
+        }
+        else {
+            prevThickness = minThickness+(level-1)*(maxThickness-minThickness)/(levels-1)
+            prevHeight = minHeight+level*(maxHeight-minHeight)/levels
+        }
         console.log("Mesh level "+(level+1)+"/"+levels+" "+prevHeight+" "+height)
         if (level == levels-1)
             height = Number.POSITIVE_INFINITY;
-        addLevel(mesh, raster, size, prevHeight, height, prevThickness, thickness)
+        addLevelToMesh(mesh, segmentSet, raster, size, scale, prevHeight, height, prevThickness, thickness, startX, endX)
         prevHeight = height
         prevThickness = thickness
     }
-    console.log("meshing done",mesh.length)
+
+    var substeps = 10
     
-    window.document.getElementById("progress").innerHTML = "Preparing download..."
-    
-    downloadBlob(name+".stl", new Blob([makeMeshByteArray(mesh)], {type: "application/octet-stream"}));
+    function processStep(level,substep) {
+        if (level<levels) {
+            console.log("level",level,"substep",substep,"of",substeps)
+            var startX = Math.floor(size*substep/substeps)
+            var endX = Math.floor(size*(substep+1)/substeps)
+            addLevel(level,Math.floor(size*substep/substeps),Math.floor(size*(substep+1)/substeps))
+            substep++
+            window.document.getElementById("progress").innerHTML = "Level "+(level+1)+" of "+levels+" ("+Math.floor(100*substep/substeps)+"%)"
+            if (substep >= substeps) {
+                substep = 0
+                level++
+            }
+            setTimeout(processStep, 10, level, substep)
+        }
+        else {
+            console.log("meshing done",mesh.length)
+            
+            window.document.getElementById("progress").innerHTML = "Preparing download..."
+            setTimeout(function() {
+                downloadBlob(name+".stl", new Blob([makeMeshByteArray(mesh)], {type: "application/octet-stream"}));
+                },0)
+        }
+    }
+
+    window.document.getElementById("progress").innerHTML = "Level 1 of "+levels
+    setTimeout(processStep, 0, 0, 0)
 }
 
 function processRunfile(response) {
