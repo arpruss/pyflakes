@@ -30,14 +30,14 @@ var levels
 var name
 var globalMesh
 
-var CORNERS = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]]
+var CORNERS = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]] 
 
 function displayX(x,y,size) {
-    return ((x-2*size) + (y-2*size) / 2.) * Math.sqrt(3)
+    return (x+0.5*y)*Math.sqrt(3) // ((x-2*size) + (y-2*size) / 2.) * Math.sqrt(3)
 }
 
 function displayY(x,y,size) {
-    return (y-2*size) * 1.5
+    return y*1.5 // (y-2*size) * 1.5
 }
 
 function getScale(raster, size) {
@@ -63,7 +63,7 @@ function addLevel(mesh, raster, size, prevHeight, height, prevThickness, thickne
     }
     
     function addTriangleAt(h, a, b, c) {
-        mesh.push(raiseTo(a,h),raiseTo(b,h),raiseTo(c,h)) 
+        mesh.push([raiseTo(a,h),raiseTo(b,h),raiseTo(c,h)]) 
     }
     
     function addSideMesh(a, b) {
@@ -76,18 +76,17 @@ function addLevel(mesh, raster, size, prevHeight, height, prevThickness, thickne
     for (var x = 0 ; x < size; x++)
         for (var y = 0 ; y < size ; y++) {
             if (prevHeight < raster[x][y] && raster[x][y] <= height) {
-                var center = xyToDisplay([2*x,2*y])
+                var center = xyToDisplay([y,y+2*x])
                 for (var i=0; i<6; i++) {
                     var c0 = CORNERS[i]
                     var c1 = CORNERS[(i+1)%6]
-                    var p0 = [2*x+c0[0],2*y+c0[1]]
-                    var p1 = [2*x+c1[0],2*y+c1[1]]
+                    var p0 = [y+c0[0],y+2*x+c0[1]]
+                    var p1 = [y+c1[0],y+2*x+c1[1]]
                     
                     var rev = p1[0]+","+p1[1]+","+p0[0]+","+p0[1]
                     
                     if (segmentSet.has(rev)) {
                         segmentSet.delete(rev)
-                        console.log("del")
                     }
                     else {
                         segmentSet.add(p0[0]+","+p0[1]+","+p1[0]+","+p1[1])
@@ -99,14 +98,14 @@ function addLevel(mesh, raster, size, prevHeight, height, prevThickness, thickne
             }
         }
         
+    console.log("Meshing edges")
     segments = []
      
     segmentSet.forEach(function(seg) {
         var points = seg.split(",")
         addSideMesh(xyToDisplay([parseInt(points[0]),parseInt(points[1])]), xyToDisplay([parseInt(points[2]),parseInt(points[3])]))
     })
-    
-    console.log(mesh.length)
+   
 }
 
 function processRaster(raster, size) {
