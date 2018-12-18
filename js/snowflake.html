@@ -228,32 +228,44 @@ function processRunfile(response) {
     setTimeout( function() { processRaster(raster, size) }, 0 )
 }
 
+function ready() {
+}
+
 function process(document) {
     console.log("Scraping")
     var found = false;
-    links = document.getElementsByTagName('a')
-    for (var i=0;i<links.length;i++) {
-        matches = links[i].href.match("/flakes/snowflake-.*\\.txt")
-        if (matches) {            
-            found = true
-            var xhr = new XMLHttpRequest()
-            xhr.onload = function() {
-                processRunfile(xhr.response)
+    if (document) {
+        links = document.getElementsByTagName('a')
+        for (var i=0;i<links.length;i++) {
+            matches = links[i].href.match("/flakes/snowflake-.*\\.txt")
+            if (matches) {            
+                found = true
+                var xhr = new XMLHttpRequest()
+                xhr.onload = function() {
+                    processRunfile(xhr.response)
+                }
+                xhr.onerror = function() {
+                    window.document.getElementById("progress").innerHTML = "Error loading snowflake data."
+                    ready()
+                }
+                url = "http://mkweb.bcgsc.ca/snowflakes"+matches[0]
+                xhr.open("GET", corsCircumvent(url))
+                xhr.responseType = "text"
+                xhr.send()
+                window.document.getElementById("progress").innerHTML = "Loading..."
+                break
             }
-            url = "http://mkweb.bcgsc.ca/snowflakes"+matches[0]
-            xhr.open("GET", corsCircumvent(url))
-            xhr.responseType = "text"
-            xhr.send()
-            window.document.getElementById("progress").innerHTML = "Loading..."
-            break
         }
     }
     if (!found) {
-        alert("Snowflake not found")
+        window.document.getElementById("progress").innerHTML = "Snowflake not found or error in connecting."
+        ready()
     }
 }
 
 function load() {
+    window.document.getElementById("output").innerHTML = ""
+
     diameter = parseFloat(window.document.getElementById("diameter").value)
     minThickness = parseFloat(window.document.getElementById("thinnest").value)
     maxThickness = parseFloat(window.document.getElementById("thickest").value)
@@ -266,6 +278,11 @@ function load() {
     xhr.onload = function() {
         process(xhr.responseXML)
     }
+    xhr.onerror = function() {
+        window.document.getElementById("progress").innerHTML = "Snowflake not found or error in connecting."
+        ready()
+    }
+    
     url = "http://mkweb.bcgsc.ca/snowflakes/flake.mhtml?flake="+name
     xhr.open("GET", corsCircumvent(url))
     xhr.responseType = "document"
