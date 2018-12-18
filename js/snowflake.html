@@ -30,8 +30,9 @@ var levels
 var name
 var globalMesh
 
-var CORNERS = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]] 
-
+//var CORNERS = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]] 
+//var CORNERS = [[0,-1], [1,0], [1,1], [0,1], [-1,0], [-1,-1]];
+var CORNERS = [[1,0], [0,1], [-1,1], [-1,0], [0,-1], [1,-1] ];
 function displayX(x,y,size) {
     return (x+0.5*y)*Math.sqrt(3) // ((x-2*size) + (y-2*size) / 2.) * Math.sqrt(3)
 }
@@ -52,7 +53,7 @@ function getScale(raster, size) {
 function addLevel(mesh, raster, size, prevHeight, height, prevThickness, thickness) {
     var maxCoord = 100000
     
-    var scale = getScale(raster, size)
+    var scale = 1 // getScale(raster, size)
 
     function xyToDisplay(xy) {
         return [scale*displayX(xy[0],xy[1],size),scale*displayY(xy[0],xy[1],size)]
@@ -75,13 +76,15 @@ function addLevel(mesh, raster, size, prevHeight, height, prevThickness, thickne
     
     for (var x = 0 ; x < size; x++)
         for (var y = 0 ; y < size ; y++) {
-            if (prevHeight < raster[x][y] && raster[x][y] <= height) {
-                var center = xyToDisplay([y,y+2*x])
+            l = Math.sqrt(Math.pow(displayX(2*(x-size/2),2*(y-size/2),1),2)+ Math.pow(displayY(2*(x-size/2),2*(y-size/2),1),2))
+            if (l <= 4) {// {prevHeight < raster[x][y] && raster[x][y] <= height) {
+                console.log(x-size/2,y-size/2)
+                var center = xyToDisplay([2*x,2*y])
                 for (var i=0; i<6; i++) {
                     var c0 = CORNERS[i]
                     var c1 = CORNERS[(i+1)%6]
-                    var p0 = [y+c0[0],y+2*x+c0[1]]
-                    var p1 = [y+c1[0],y+2*x+c1[1]]
+                    var p0 = [2*x+c0[0],2*y+c0[1]]
+                    var p1 = [2*x+c1[0],2*y+c1[1]]
                     
                     var rev = p1[0]+","+p1[1]+","+p0[0]+","+p0[1]
                     
@@ -114,20 +117,24 @@ function processRaster(raster, size) {
     var minHeight = Number.POSITIVE_INFINITY
     var maxHeight = Number.NEGATIVE_INFINITY
     
-    for (var x = 0 ; x < size ; x++) {
+/*    for (var x = 0 ; x < size ; x++) {
         for (var y = 0; y<size ; y++) {
             if (raster[x][y] > 0) {
                 minHeight = Math.min(minHeight, raster[x][y])
                 maxHeight = Math.max(maxHeight, raster[x][y])
             }
         }
-    }
+    } */
+    
+    minHeight = 1
+    maxHeight = 100
 
     var mesh = []
     var prevHeight = 0
     var prevThickness = 0
     
     for (var level=0; level<levels; level++) {
+        console.log("l")
         var thickness
         if (levels == 1) {
             thickness = maxThickness
@@ -239,7 +246,7 @@ function load() {
     if (levels < 1 || minThickness >= maxThickness) 
         levels = 1
         
-    var xhr = new XMLHttpRequest()
+/*    var xhr = new XMLHttpRequest()
     xhr.onload = function() {
         process(xhr.responseXML)
     }
@@ -248,7 +255,8 @@ function load() {
     xhr.responseType = "document"
     xhr.send()
     document.getElementById("progress").innerHTML = "Searching..."
-    document.getElementById("output").innerHTML = ""
+    document.getElementById("output").innerHTML = "" */
+    processRaster([[]], 800)
 }
 
 function setVector(view, position, vector) {
