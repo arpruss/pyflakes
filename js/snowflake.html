@@ -14,14 +14,18 @@ Number of levels: <input id="levels" type="number" step="1" min="1" max="1000" v
 </body>
 
 <script>
+// TODO: fix multiple Generate presses
+
 function corsCircumvent(url) {
     return "http://api.allorigins.ml/get?method=raw&url="+encodeURIComponent(url)+"&callback=?"
 }
 
+var TRIANGLE_SIZE = (3+3*3)*4+2
 var diameter
 var minThickness
 var maxThickness
 var levels
+var name
 
 var CORNERS = [[1, 0], [0, 1], [-1, 1], [-1, 0], [0, -1], [1, -1]]
 
@@ -95,8 +99,8 @@ function makeMesh(raster, size, prevHeight, height, prevThickness, thickness) {
                     else {
                         segments[s0] = s1
                     }
-                    addTriangleAt(0, center, xyToDisplay(p1), xyToDisplay(p0)])
-                    addTriangleAt(thickness, center, xyToDisplay(p0), xyToDisplay(p1)])
+                    addTriangleAt(0, center, xyToDisplay(p1), xyToDisplay(p0))
+                    addTriangleAt(thickness, center, xyToDisplay(p0), xyToDisplay(p1))
                 }
             }
         }
@@ -164,8 +168,8 @@ function processRaster(raster, size) {
         prevHeight = height
         prevThickness = thickness
     }
-    
-    emitMesh(mesh)
+
+    downloadBlob(name+".stl", new Blob([makeMeshByteArray(toMake)], {type: "application/octet-stream"}));
 }
 
 function processRunfile(response) {
@@ -243,6 +247,7 @@ function load() {
     minThickness = parseFloat(window.document.getElementById("thinnest").value)
     maxThickness = parseFloat(window.document.getElementById("thickest").value)
     levels = parseInt(window.document.getElementById("levels").value)
+    name = window.document.getElementById("name").value.toLowerCase()
     if (levels < 1 || minThickness >= maxThickness) 
         levels = 1
     
@@ -250,7 +255,7 @@ function load() {
     xhr.onload = function() {
         process(xhr.responseXML)
     }
-    url = "http://mkweb.bcgsc.ca/snowflakes/flake.mhtml?flake="+window.document.getElementById("name").value.toLowerCase()
+    url = "http://mkweb.bcgsc.ca/snowflakes/flake.mhtml?flake="+name
     xhr.open("GET", corsCircumvent(url))
     xhr.responseType = "document"
     xhr.send()
@@ -258,8 +263,49 @@ function load() {
     document.getElementById("output").innerHTML = ""
 }
 
-// TODO: fix multiple Generate presses
-</script>
+function setVector(view, position, vector) {
+    view.setFloat32(position, vector[0], true);
+    view.setFloat32(position+4, vector[1], true);
+    view.setFloat32(position+8, vector[2], true);
+}
 
+function makeMeshByteArray(mesh) {
+    totalTriangles = triangleList.length
+        
+    var data = new ArrayBuffer(84 + totalTriangles * TRIANGLE_SIZE);
+    var view = new DataView(data);
+    view.setUint32(80, totalTriangles, true);
+    var offset = 84;
+    for (var i=0; i<totalTriangles; i++) {
+        setVector(view, offset, [0,0,0]); // normal (TODO)
+        setVector(view, offset+12, triangles[i][0]); // v1
+        setVector(view, offset+12*2, triangles[i][1]); // v2
+        setVector(view, offset+12*3, triangles[i][2]); // v3
+        offset += TRIANGLE_SIZE;
+    }
+    return view.buffer;
+}
+
+function downloadBlob(name,blob) {
+    var link = document.createElement('a');
+    document.body.appendChild(link);
+    link.download = name;
+    link.href = window.URL.createObjectURL(blob);
+    link.onclick = function(e) {
+        setTimeout(function() {
+            window.URL.revokeObjectURL(link.href);
+        }, 1600);
+    };
+    link.click();
+    try {
+        link.remove();
+    }
+    catch(err) {}  
+    try {
+        document.body.removeChild(link);
+    }
+    catch(err) {}
+}
+</script>
 
 </html>
