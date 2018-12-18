@@ -117,11 +117,6 @@ def gravner_griffeath(radius = 400,
             # v. Noise
             hex.d += random.choice((-1,1))*sigma*hex.d
 
-    targetSize = 190,
-    maxHeight = 3,
-    minHeight = 0.5,
-    name = "morptel"
-            
     board = symmetrichex.SymmetricHex(radius, initializer=initializer, isFilled=lambda hex:hex.a)
     scratch = [0 for i in board.indices]
     unfilled = [y for y in board.indices if not board[y].a]
@@ -149,12 +144,18 @@ if __name__ == '__main__':
     theta = 0.0591767342
     sigma = 0 # 1e-5
     steps = 11849
+
     seed = 1
+    name = "morptel"
+    targetSize = 190
+    maxHeight = 3
+    minHeight = 0.5
+            
 
     random.seed(seed)
     
     board = gravner_griffeath(radius=radius, rho=rho, kappa=kappa, mu=mu, gamma=gamma, alpha=alpha, beta=beta, theta=theta, sigma=sigma,
-                steps=steps, seed=seed)
+                steps=steps)
 
     minC = float("inf")
     maxC = float("-inf")
