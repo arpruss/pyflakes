@@ -32,13 +32,13 @@ var name
 
 var CORNERS = [[1,1], [-1,2], [-2,1], [-1,-1], [1,-2], [2,-1]];
 function displayX(x,y,size) {
-    x -= size
-    y -= size
+    x -= size*1.5
+    y -= size*1.5
     return (x+0.5*y)*Math.sqrt(3) // ((x-2*size) + (y-2*size) / 2.) * Math.sqrt(3)
 }
 
 function displayY(x,y,size) {
-    y -= size
+    y -= size*1.5
     return y*1.5 // (y-2*size) * 1.5
 }
 
@@ -47,7 +47,7 @@ function getScale(raster, size) {
     for (var x = 0 ; x < size ; x++)
         for (var y = 0; y < size ; y++)
             if (raster[x][y]>0)
-                maxRadiusSq = Math.max(maxRadiusSq,Math.pow(displayX(x*2,y*2,size),2)+Math.pow(displayY(x*2,y*2,size),2))
+                maxRadiusSq = Math.max(maxRadiusSq,Math.pow(displayX(x*3,y*3,size),2)+Math.pow(displayY(x*3,y*3,size),2))
     console.log(diameter,2*(0.5+Math.sqrt(maxRadiusSq)))
     return diameter/(2*(0.5+Math.sqrt(maxRadiusSq)))
 }
@@ -94,12 +94,12 @@ function addLevelToMesh(mesh, segmentSet, raster, size, scale, prevHeight, heigh
     for (var x = startX ; x < endX; x++)
         for (var y = 0 ; y < size ; y++) {
             if (prevHeight < raster[x][y]) {
-                var center = xyToDisplay([2*x,2*y])
+                var center = xyToDisplay([3*x,3*y])
                 for (var i=0; i<6; i++) {
                     var c0 = CORNERS[i]
                     var c1 = CORNERS[(i+1)%6]
-                    var p0 = [2*x+c0[0],2*y+c0[1]]
-                    var p1 = [2*x+c1[0],2*y+c1[1]]
+                    var p0 = [3*x+c0[0],3*y+c0[1]]
+                    var p1 = [3*x+c1[0],3*y+c1[1]]
                     
                     var rev = p1[0]+","+p1[1]+","+p0[0]+","+p0[1]
                     
