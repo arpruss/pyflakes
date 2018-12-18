@@ -14,7 +14,6 @@ Number of levels: <input id="levels" type="number" step="1" min="1" max="1000" v
 </body>
 
 <script>
-// TODO: fix multiple Generate presses
 
 function corsCircumvent(url) {
     //return "http://crossorigin.me/"+encodeURIComponent(url)
@@ -150,7 +149,6 @@ function processRaster(raster, size) {
     var prevThickness = 0
     
     for (var level=0; level<levels; level++) {
-        console.log("l")
         var thickness
         if (levels == 1) {
             thickness = maxThickness
@@ -229,6 +227,7 @@ function processRunfile(response) {
 }
 
 function ready() {
+    document.getElementById('Go').disabled = false
 }
 
 function process(document) {
@@ -289,6 +288,7 @@ function load() {
     xhr.send()
     document.getElementById("progress").innerHTML = "Searching..."
     document.getElementById("output").innerHTML = "" 
+    document.getElementById('Go').disabled = true
  //   processRaster([[]], 800)
 }
 
