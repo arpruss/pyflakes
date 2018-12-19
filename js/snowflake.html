@@ -234,7 +234,7 @@ function processRunfile(response) {
                 message += params[line[1]]+": "+line[2]+"<br/>"
                 if (line[1] == "n") {
                     origSize = parseInt(line[2])
-                    size = Math.floor(origSize/reduce)
+                    size = Math.floor((origSize-1)/reduce)+1
                     raster = []
                     for (var x = 0 ; x < size ; x++) {
                         raster[x] = []
