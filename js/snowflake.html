@@ -9,6 +9,7 @@ Diameter: <input id="diameter" type="number" value="190" min="0.1" step="5" max=
 Minimum thickness: <input id="thinnest" type="number" step="0.1" value="1.5" min="0.1" max="100000"/>mm<br/> 
 Maximum thickness: <input id="thickest" type="number" step="0.1" value="4" min="0.1" max="100000"/>mm<br/> 
 Number of levels: <input id="levels" type="number" step="1" min="1" max="10" value="1"/><br/>
+Resolution reduction factor: <input id="reduce" type="number" step="0.1" min="1" max="10" value="1"/><br/>
 <button id="Go" onClick="load()">Generate STL</button><br/><br/></p>
 <p>Source code is <a href="https://github.com/arpruss/pyflakes/blob/master/js/snowflake.html">here</a>.</p>
 <div id="output"></div><br/>
@@ -29,6 +30,7 @@ var minThickness
 var maxThickness
 var levels
 var name
+var reduce
 
 var CORNERS = [[1,1], [-1,2], [-2,1], [-1,-1], [1,-2], [2,-1]];
 function displayX(x,y,size) {
@@ -215,6 +217,7 @@ function processRunfile(response) {
    
     window.document.getElementById("progress").innerHTML = "Processing runfile..."
 
+    var origSize = 0
     var size = 0
     var raster
     
@@ -230,7 +233,8 @@ function processRunfile(response) {
             if (params[line[1]]) {
                 message += params[line[1]]+": "+line[2]+"<br/>"
                 if (line[1] == "n") {
-                    size = parseInt(line[2])
+                    origSize = parseInt(line[2])
+                    size = Math.floor(origSize/reduce)
                     raster = []
                     for (var x = 0 ; x < size ; x++) {
                         raster[x] = []
@@ -241,15 +245,15 @@ function processRunfile(response) {
             }
         }
         else if (line[0]=='y') {
-            y = parseInt(line[1])
-            for (var x = 0 ; x < size ; x++) {
-                raster[x][y] = parseInt(line[2+x])
+            var y = Math.floor(parseInt(line[1])/reduce)
+            for (var x = 0 ; x < origSize ; x++) {
+                var xx = Math.floor(x/reduce)
+                var value = (x==origSize/2 && y==origSize/2) ? 255 : parseInt(line[2+x])
+                raster[xx][y] = Math.max(raster[xx][y],value)
             }
         }
     }
     
-    raster[Math.floor(size/2)][Math.floor(size/2)] = 255
-
     console.log("runfile processed")
 
     if (! size) {
@@ -308,6 +312,7 @@ function load() {
     minThickness = parseFloat(window.document.getElementById("thinnest").value)
     maxThickness = parseFloat(window.document.getElementById("thickest").value)
     levels = parseInt(window.document.getElementById("levels").value)
+    reduce = parseInt(window.document.getElementById("reduce").value)
     name = window.document.getElementById("name").value.toLowerCase()
     if (levels < 1 || minThickness >= maxThickness) 
         levels = 1
