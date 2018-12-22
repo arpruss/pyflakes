@@ -3,14 +3,41 @@
 <head><title>Snowflake to STL</title></head>
 </head>
 <body onload="load()">
-<p>
-Snowflake name: <input id="name" type="text" value="morptel"/> (find it <a href="http://mkweb.bcgsc.ca/snowflakes">here</a>)<br/>
-Diameter: <input id="diameter" type="number" value="190" min="0.1" step="5" max="100000"/>mm <br/>
-Minimum thickness: <input id="thinnest" type="number" step="0.1" value="1.5" min="0.1" max="100000"/>mm<br/> 
-Maximum thickness: <input id="thickest" type="number" step="0.1" value="4" min="0.1" max="100000"/>mm<br/> 
-Thickening distance: <input id="thicken" type="number" step="0.25" min="0" max="30" value="2"/><br/>
-Number of levels: <input id="levels" type="number" step="1" min="1" max="10" value="1"/><br/>
-Resolution reduction factor: <input id="reduce" type="number" step="0.1" min="1" max="10" value="1"/><br/>
+<table >
+<tr>
+    <th>Snowflake name</th>
+    <td><input id="name" type="text" size="10" value="morptel"/></td>
+    <td>(find it <a href="http://mkweb.bcgsc.ca/snowflakes">here</a>)</td>
+</tr>
+<tr>
+    <th>Diameter</th>
+    <td><input id="diameter" type="number" size="10" value="190" min="0.1" step="5" max="10000"/></td>
+    <td>mm</td>
+</tr>
+<tr>
+    <th>Minimum thickness</th>
+    <td><input id="thinnest" type="number" size="10" step="0.1" value="1.5" min="0.1" max="10000"/></td>
+    <td>mm</td>
+</tr>
+<tr>
+    <th>Maximum thickness</th>
+    <td><input id="thickest" type="number" size="10" step="0.1" value="4" min="0.1" max="10000"/></td>
+    <td>mm</td>
+</tr>
+<tr>
+    <th>Tendril widening distance</th>
+    <td><input id="widen" type="number" size="10" step="0.25" min="0" max="30" value="2"/></td>
+    <td>cells</td>
+</tr>
+<tr>
+    <th>Number of levels</th>
+    <td><input id="levels" type="number" size="10" step="1" min="1" max="10" value="1"/></td>
+</tr>
+<tr>
+    <th>Resolution reduction factor</th>
+    <td><input id="reduce" type="number" size="10" step="0.1" min="1" max="10" value="1"/></td>
+</tr>
+</table>
 <button id="Go" onClick="generate()">Generate STL</button><br/><br/></p>
 <p>Source code is <a href="https://github.com/arpruss/pyflakes/blob/master/js/snowflake.html">here</a>.</p>
 <div id="output"></div><br/>
@@ -32,7 +59,7 @@ var maxThickness
 var levels
 var name
 var reduce
-var thicken
+var widen
 
 var CORNERS = [[1,1], [-1,2], [-2,1], [-1,-1], [1,-2], [2,-1]];
 
@@ -266,17 +293,17 @@ function processRunfile(response) {
         window.document.getElementById("output").innerHTML = message
     }
     
-    if (thicken > 0) {
-        window.document.getElementById("progress").innerHTML = "Thickening data."
+    if (widen > 0) {
+        window.document.getElementById("progress").innerHTML = "widening data."
     }
 
-    setTimeout( function() { thickenRaster(raster, size) }, 0 )
+    setTimeout( function() { widenRaster(raster, size) }, 0 )
 }
 
-function thickenRaster(raster, size) {
-    if (thicken > 0) {
-        var r = 3*thicken + 0.1
-        console.log("Thicken radius",r)
+function widenRaster(raster, size) {
+    if (widen > 0) {
+        var r = 3*widen + 0.1
+        console.log("widen radius",r)
         
         var out = []
         for (var x = 0 ; x < size ; x++) {
@@ -284,8 +311,8 @@ function thickenRaster(raster, size) {
             for (var y = 0; y < size ; y++) 
                 out[x][y] = 0
             for (var y = 0; y < size ; y++) {
-                for (var x1 = Math.max(0,x-thicken) ; x1 <= x+thicken && x1 < size; x1++) 
-                    for (var y1 = Math.max(0,y-thicken) ; y1 <= y+thicken && y1 < size ; y1++) 
+                for (var x1 = Math.max(0,x-widen) ; x1 <= x+widen && x1 < size; x1++) 
+                    for (var y1 = Math.max(0,y-widen) ; y1 <= y+widen && y1 < size ; y1++) 
                         if (distance(x,y,x1,y1) <= r) {
                             out[x][y] = Math.max(out[x][y], raster[x1][y1])
                         }
@@ -367,11 +394,10 @@ function process(document) {
 }
 
 function load() {
-    console.log("load")
     var args = window.location.search.substr(1).split('&')
     for (var i=0;i<args.length;i++) {
         var parts = args[i].split('=')
-        if (parts.length == 2 && 0 <= ['name', 'diameter', 'thinnest', 'thickest', 'thicken', 'levels', 'reduce'].indexOf(parts[0]) ) {
+        if (parts.length == 2 && 0 <= ['name', 'diameter', 'thinnest', 'thickest', 'widen', 'levels', 'reduce'].indexOf(parts[0]) ) {
             var value = decodeURIComponent(parts[1])
             window.document.getElementById(parts[0]).value = parts[1]
         }
@@ -387,7 +413,7 @@ function generate() {
     maxThickness = parseFloat(window.document.getElementById("thickest").value)
     levels = parseInt(window.document.getElementById("levels").value)
     reduce = parseInt(window.document.getElementById("reduce").value)
-    thicken = parseFloat(window.document.getElementById("thicken").value)
+    widen = parseFloat(window.document.getElementById("widen").value)
     name = window.document.getElementById("name").value.toLowerCase()
     if (levels < 1 || minThickness >= maxThickness) 
         levels = 1
