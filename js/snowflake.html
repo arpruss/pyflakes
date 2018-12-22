@@ -4,36 +4,36 @@
 </head>
 <body onload="load()">
 <table >
-<tr>
+<tr title="Name from Martin Krzywinski's website">
     <th>Snowflake name</th>
     <td><input id="name" type="text" size="10" value="morptel"/></td>
     <td>(find it <a href="http://mkweb.bcgsc.ca/snowflakes">here</a>)</td>
 </tr>
-<tr>
+<tr title="Diameter of snowflake STL to be generated">
     <th>Diameter</th>
     <td><input id="diameter" type="number" size="10" value="190" min="0.1" step="5" max="10000"/></td>
     <td>mm</td>
 </tr>
-<tr>
+<tr title="Thickness (height) of thinnest parts of snowflake">
     <th>Minimum thickness</th>
     <td><input id="thinnest" type="number" size="10" step="0.1" value="1.5" min="0.1" max="10000"/></td>
     <td>mm</td>
 </tr>
-<tr>
+<tr title="Thickness (height) of thickest parts of snowflake">
     <th>Maximum thickness</th>
     <td><input id="thickest" type="number" size="10" step="0.1" value="4" min="0.1" max="10000"/></td>
     <td>mm</td>
 </tr>
-<tr>
+<tr title="Add these many cells around a given cell to make thin tendrils more printable">
     <th>Tendril widening distance</th>
     <td><input id="widen" type="number" size="10" step="0.25" min="0" max="30" value="2"/></td>
     <td>cells</td>
 </tr>
-<tr>
+<tr title="Number of vertical levels to generate">
     <th>Number of levels</th>
     <td><input id="levels" type="number" size="10" step="1" min="1" max="10" value="1"/></td>
 </tr>
-<tr>
+<tr title="Reduce resolution to reduce size of STL file">
     <th>Resolution reduction factor</th>
     <td><input id="reduce" type="number" size="10" step="0.1" min="1" max="10" value="1"/></td>
 </tr>
