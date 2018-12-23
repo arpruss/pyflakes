@@ -236,7 +236,7 @@ function processRaster(raster, size) {
             
             window.document.getElementById("progress").innerHTML = "Preparing download..."
             setTimeout(function() {
-                downloadBlob(name+".stl", new Blob([makeMeshByteArray(mesh)], {type: "application/octet-stream"}));
+                downloadBlob((name[0]=='_' ? name.substring(1) : name)+".stl", new Blob([makeMeshByteArray(mesh)], {type: "application/octet-stream"}));
                 },0)
         }
     }
@@ -367,6 +367,22 @@ function ready() {
     document.getElementById('Go').disabled = false
 }
 
+function getRunfile(internalName) {
+    var xhr = new XMLHttpRequest()
+    xhr.onload = function() {
+        processRunfile(xhr.response)
+    }
+    xhr.onerror = function() {
+        window.document.getElementById("progress").innerHTML = "Error loading snowflake data."
+        ready()
+    }
+    url = "http://mkweb.bcgsc.ca/snowflakes/flakes/snowflake-"+internalName+".txt"
+    xhr.open("GET", corsCircumvent(url))
+    xhr.responseType = "text"
+    xhr.send()
+    window.document.getElementById("progress").innerHTML = "Loading..."
+}
+
 function process(document) {
     console.log("Scraping")
     var found = false;
@@ -374,21 +390,9 @@ function process(document) {
         links = document.getElementsByTagName('a')
         for (var i=0;i<links.length;i++) {
             matches = links[i].href.match("/flakes/snowflake-.*\\.txt")
-            if (matches) {            
+            if (matches) {
                 found = true
-                var xhr = new XMLHttpRequest()
-                xhr.onload = function() {
-                    processRunfile(xhr.response)
-                }
-                xhr.onerror = function() {
-                    window.document.getElementById("progress").innerHTML = "Error loading snowflake data."
-                    ready()
-                }
-                url = "http://mkweb.bcgsc.ca/snowflakes"+matches[0]
-                xhr.open("GET", corsCircumvent(url))
-                xhr.responseType = "text"
-                xhr.send()
-                window.document.getElementById("progress").innerHTML = "Loading..."
+                getRunfile(matches[0].substring(18))
                 break
             }
         }
@@ -405,7 +409,9 @@ function load() {
         var parts = args[i].split('=')
         if (parts.length == 2 && 0 <= ['name', 'diameter', 'thinnest', 'thickest', 'widen', 'levels', 'reduce'].indexOf(parts[0]) ) {
             var value = decodeURIComponent(parts[1])
-            window.document.getElementById(parts[0]).value = parts[1]
+            if (parts[0] == 'name')
+                value = '_' + value
+            window.document.getElementById(parts[0]).value = value
         }
     }
 }
@@ -424,20 +430,25 @@ function generate() {
     if (levels < 1 || minThickness >= maxThickness) 
         levels = 1
         
-    var xhr = new XMLHttpRequest()
-    xhr.onload = function() {
-        process(xhr.responseXML)
+    if (name[0] == '_') {
+        getRunfile(name.substring(1))
     }
-    xhr.onerror = function() {
-        window.document.getElementById("progress").innerHTML = "Snowflake not found or error in connecting."
-        ready()
+    else {
+        var xhr = new XMLHttpRequest()
+        xhr.onload = function() {
+            process(xhr.responseXML)
+        }
+        xhr.onerror = function() {
+            window.document.getElementById("progress").innerHTML = "Snowflake not found or error in connecting."
+            ready()
+        }
+        
+        url = "http://mkweb.bcgsc.ca/snowflakes/flake.mhtml?flake="+name
+        xhr.open("GET", corsCircumvent(url))
+        xhr.responseType = "document"
+        xhr.send()
+        document.getElementById("progress").innerHTML = "Searching..."
     }
-    
-    url = "http://mkweb.bcgsc.ca/snowflakes/flake.mhtml?flake="+name
-    xhr.open("GET", corsCircumvent(url))
-    xhr.responseType = "document"
-    xhr.send()
-    document.getElementById("progress").innerHTML = "Searching..."
     document.getElementById("output").innerHTML = "" 
     document.getElementById('Go').disabled = true
  //   processRaster([[]], 800)
