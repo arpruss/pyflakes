@@ -162,8 +162,8 @@ function addLevelToMesh(mesh, segmentSet, raster, size, scale, prevHeight, heigh
     console.log("Meshing edges")
      
     segmentSet.forEach(function(seg) {
-        var points = seg.split(",")
-        addSideMesh(xyToDisplay([parseInt(points[0]),parseInt(points[1])]), xyToDisplay([parseInt(points[2]),parseInt(points[3])]))
+        var points = seg.split(",").map(Number)
+        addSideMesh(xyToDisplay([points[0],points[1]]), xyToDisplay([points[2],points[3]]))
     })
    
 }
