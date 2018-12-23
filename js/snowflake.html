@@ -16,12 +16,12 @@
 </tr>
 <tr title="Thickness (height) of thinnest parts of snowflake">
     <th>Minimum thickness</th>
-    <td><input id="thinnest" type="number" size="10" step="0.1" value="1.5" min="0.1" max="10000"/></td>
+    <td><input id="thinnest" type="number" size="10" step="0.1" value="1.25" min="0.1" max="10000"/></td>
     <td>mm</td>
 </tr>
 <tr title="Thickness (height) of thickest parts of snowflake">
     <th>Maximum thickness</th>
-    <td><input id="thickest" type="number" size="10" step="0.1" value="4" min="0.1" max="10000"/></td>
+    <td><input id="thickest" type="number" size="10" step="0.1" value="2.25" min="0.1" max="10000"/></td>
     <td>mm</td>
 </tr>
 <tr title="Add these many cells around a given cell to make thin tendrils more printable">
@@ -31,7 +31,7 @@
 </tr>
 <tr title="Number of vertical levels to generate">
     <th>Number of levels</th>
-    <td><input id="levels" type="number" size="10" step="1" min="1" max="10" value="1"/></td>
+    <td><input id="levels" type="number" size="10" step="1" min="1" max="20" value="8"/></td>
 </tr>
 <tr title="Reduce resolution to reduce size of STL file">
     <th>Resolution reduction factor</th>
@@ -308,14 +308,20 @@ function widenRaster(raster, size) {
         var out = []
         for (var x = 0 ; x < size ; x++) {
             out[x] = []
-            for (var y = 0; y < size ; y++) 
-                out[x][y] = 0
             for (var y = 0; y < size ; y++) {
-                for (var x1 = Math.max(0,x-widen) ; x1 <= x+widen && x1 < size; x1++) 
-                    for (var y1 = Math.max(0,y-widen) ; y1 <= y+widen && y1 < size ; y1++) 
-                        if (distance(x,y,x1,y1) <= r) {
-                            out[x][y] = Math.max(out[x][y], raster[x1][y1])
+                out[x][y] = raster[x][y]
+                if (out[x][y] <= 0) {
+                    var newValue = Number.POSITIVE_INFINITY
+                    for (var x1 = Math.max(0,x-widen) ; x1 <= x+widen && x1 < size; x1++) 
+                        for (var y1 = Math.max(0,y-widen) ; y1 <= y+widen && y1 < size ; y1++) {
+                            var v = raster[x1][y1]
+                            if (0 < v && v < newValue && distance(x,y,x1,y1) <= r) {
+                                newValue = v
+                            }
                         }
+                    if (newValue < Number.POSITIVE_INFINITY)
+                        out[x][y] = newValue
+                }
             }
         }
         
