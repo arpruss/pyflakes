@@ -389,10 +389,10 @@ function process(document) {
     if (document) {
         links = document.getElementsByTagName('a')
         for (var i=0;i<links.length;i++) {
-            matches = links[i].href.match("/flakes/snowflake-.*\\.txt")
+            matches = links[i].href.match("/flakes/snowflake-(.*)\\.txt")
             if (matches) {
                 found = true
-                getRunfile(matches[0].substring(18))
+                getRunfile(matches[1])
                 break
             }
         }
