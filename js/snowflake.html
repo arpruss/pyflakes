@@ -48,7 +48,7 @@
 
 function corsCircumvent(url) {
     //return "http://crossorigin.me/"+encodeURIComponent(url)
-    return "http://cors-anywhere.herokuapp.com/"+encodeURIComponent(url)
+    return "http://cors-anywhere.herokuapp.com/"+encodeURIComponent(url.substr(7))
     //return "http://cors-proxy.htmldriven.com/?url="+encodeURIComponent(url)
     //return "https://api.allorigins.ml/get?method=raw&url="+encodeURIComponent(url)+"&callback=?"
 }
