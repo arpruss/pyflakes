@@ -48,7 +48,8 @@
 
 function corsCircumvent(url) {
     //return "http://crossorigin.me/"+encodeURIComponent(url)
-    return "http://cors-proxy.htmldriven.com/?url="+encodeURIComponent(url)
+    return "http://cors-anywhere.herokuapp.com/"+encodeURIComponent(url)
+    //return "http://cors-proxy.htmldriven.com/?url="+encodeURIComponent(url)
     //return "https://api.allorigins.ml/get?method=raw&url="+encodeURIComponent(url)+"&callback=?"
 }
 
@@ -446,6 +447,7 @@ function generate() {
         url = "http://mkweb.bcgsc.ca/snowflakes/flake.mhtml?flake="+name
         xhr.open("GET", corsCircumvent(url))
         xhr.responseType = "document"
+        xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest")
         xhr.send()
         document.getElementById("progress").innerHTML = "Searching..."
     }
